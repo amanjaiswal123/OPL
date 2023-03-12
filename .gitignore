@@ -1,11 +1,2 @@
-/.idea
-/venv
-/venv/*
+/venv/
 /.idea/*
-.deployment.xml
-.misc.xml
-.modules.xml
-.OPL.iml
-.profile_settings.xml
-.Project_Defualt.xml
-vcs.xml
