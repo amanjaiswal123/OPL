@@ -1,11 +1,13 @@
-import random
 from random import randint, shuffle
-import collections
+import os
 
 
 class Player:
     def __init__(self):
+        #The playerID is used to identify the player. Primarily used to identify the turn of the player as well as
+        #the tile owner within the stacks
         self.playerID = None
+
         self.color = None
         self.boneyard = []
         self.hand = []
@@ -146,6 +148,8 @@ class Player:
             if stack_tile_player_id != self.playerID:
                 best_move = move
                 break
+
+        print("\nThe Best Move is " + str(best_move[0]) + " on " + str(best_move[2]) + " because it has a difference of " + str(best_move[3]) + " which is the lowest difference move on a opponents stack.")
         return best_move
     def get_hand_tile(self):
         user_input = input("Please enter a tile from your hand: ")
@@ -252,12 +256,54 @@ class Player:
         self.move_from_hand_to_stack_n(6)
         self.score = 0
 
+    def seralize(self):
+        string = ""
+        string += "Player "+str(self.playerID)+": "+"Human"+"\n"
+        string += "   Stacks: "
+        t_string = ""
+        for tile in self.stack:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Boneyard: "
+        t_string = ""
+        for tile in self.boneyard:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Hand: "
+        t_string = ""
+        for tile in self.hand:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Score: "+str(self.score) + "\n"
+        string += "   Rounds Won: "+str(self.rounds_won) + "\n"
+        return string
+
 class Computer_Player(Player):
 
     def get_move(self, players):
         return self.reccomend_move(players)
 
-
+    def seralize(self):
+        string = ""
+        string += "Player "+str(self.playerID) + ": " + "Computer" + "\n"
+        string += "   Stacks: "
+        t_string = ""
+        for tile in self.stack:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Boneyard: "
+        t_string = ""
+        for tile in self.boneyard:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Hand: "
+        t_string = ""
+        for tile in self.hand:
+            t_string += str(tile.player.get_color()) + str(tile.left) + str(tile.right) + " "
+        string += t_string + "\n"
+        string += "   Score: " + str(self.score) + "\n"
+        string += "   Rounds Won: " + str(self.rounds_won) + "\n"
+        return string
 class tile():
     def __init__(self, left, right, player: Player):
         self.left = left
@@ -301,7 +347,14 @@ class tile():
 class hand():
 
     def ask_to_save_game(self):
-        return False
+        user_input = input("Would you like to save the game? (Y/N)")
+        if user_input == "Y":
+            return True
+        elif user_input == "N":
+            return False
+        else:
+            print("Error: Please enter Y or N")
+            self.ask_to_save_game()
 
     def play_hand(self, players, tournament_):
         consecutive_passes = 0
@@ -329,8 +382,13 @@ class hand():
                     print()
                     print("Player " + c_player.get_player_id() + " passed")
                     consecutive_passes += 1
-            if self.ask_to_save_game():
-                tournament_.save_game()
+              #  if self.ask_to_save_game():
+              #      c_player_pos = players.index(c_player)
+               #     if c_player_pos != (len(players) - 1):
+               #         next_player = players[c_player_pos + 1]
+               #     else:
+               #         next_player = players[0]
+                #    tournament_.save_game(next_player)
             all_empty_hands = all([len(x.hand) == 0 for x in players])
         print("\n\nHand Over")
         print("Final Hands")
@@ -415,6 +473,7 @@ class Round():
         print("Final Scores:")
         for c_player in players:
             print("Player " + c_player.get_player_id() + " scored " + str(c_player.get_score()) + " points")
+        print()
         print("Player "+players[0].get_player_id()+" wins the round")
         players_[players_.index(players[0])].rounds_won += 1
         players = sorted(players, key=lambda x: x.rounds_won, reverse=True)
@@ -442,11 +501,30 @@ class tournament():
         else:
             self.start_new_tournament(player_num, double_set_length)
 
-    def save_game(self):
-        return 0
-
+    def save_game(self,next:Player):
+        string = ""
+        for c_player in self.players:
+            string += c_player.seralize()
+        string += "\nTurn: "+str(next.get_player_id())
+        filename = self.get_filename()
+        with open(filename, "w") as f:
+            f.write(string)
+        exit()
     def load_game(self):
         pass
+
+    def is_path_available(self, path):
+        if not os.path.exists(path):
+            return True
+        else:
+            return False
+
+    def get_filename(self):
+        filename = input("Please enter a filename: ")+".txt"
+        if not self.is_path_available(filename):
+            print("Filename already exists")
+            return self.get_filename()
+        return filename
 
     def start_new_tournament(self, player_num, double_set_length):
         for x in range(0, player_num):
@@ -454,6 +532,7 @@ class tournament():
             ex_player_colors = [x.get_color() for x in self.players]
             ex_player_ids = [x.get_player_id() for x in self.players]
             temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
+            print("Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
             self.players.append(temp_player)
         round = Round()
         while True:
@@ -485,8 +564,11 @@ class tournament():
         play_again = input("Play again? (y/n): ")
         if play_again == "y":
             return True
-        else:
+        elif play_again == "n":
             return False
+        else:
+            print("Error: Please enter y or n")
+            return self.play_again()
 
     def determine_order(self):
         equal = True
