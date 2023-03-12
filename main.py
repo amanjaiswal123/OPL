@@ -36,8 +36,8 @@ class Player:
 
     def generate_boneyard(self, n):
         for x in range(0, n + 1):
-            for y in range(0, n + 1):
-                c_tile = tile(x, n - y, self)
+            for y in range(0, x + 1):
+                c_tile = tile(x, x - y, self)
                 self.boneyard.append(c_tile)
 
     def move_from_boneyard_to_hand_n(self, n):
@@ -241,6 +241,17 @@ class Player:
     def clear_hand(self):
         self.hand = []
 
+
+    def reset_player(self,double_set_length):
+        self.boneyard = []
+        self.generate_boneyard(double_set_length)
+        self.shuffle_boneyard()
+        self.hand = []
+        self.move_from_boneyard_to_hand_n(6)
+        self.stack = []
+        self.move_from_hand_to_stack_n(6)
+        self.score = 0
+
 class Computer_Player(Player):
 
     def get_move(self, players):
@@ -387,7 +398,6 @@ class Round():
                 c_player.move_from_boneyard_to_hand_n(4)
             c_hand.play_hand(players)
             hand_num += 1
-
         self.score_round(players)
 
 
@@ -408,7 +418,6 @@ class Round():
             print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
         print()
         print("Player "+players[0].get_player_id()+" is the current leader")
-        x = 1
 
 
 
@@ -418,6 +427,8 @@ class Round():
 
 class tournament():
     def __init__(self, player_num=4, double_set_length=6):
+        self.double_set_length = double_set_length
+        self.player_num = player_num
         self.players = []
         ask_to_serialize = self.ask_to_seralize()
         if ask_to_serialize:
@@ -435,15 +446,39 @@ class tournament():
             ex_player_ids = [x.get_player_id() for x in self.players]
             temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
             self.players.append(temp_player)
-        self.determine_order()
-
         round = Round()
-        round.play_round(self.players, hand_num=1)
-        round.get_winner()
-        self.play_again()
+        while True:
+            self.determine_order()
+            round.play_round(self.players, hand_num=1)
+            if not self.play_again():
+                break
+            else:
+                for c_player in self.players:
+                    c_player.reset_player(double_set_length)
+        self.get_winner()
+        print("\nGoodbye! Thanks for playing!")
+
+
+    def get_winner(self):
+        players = self.players.copy()
+        players = sorted(players, key=lambda x: x.rounds_won, reverse=True)
+        print()
+        print("Final Rankings: ")
+        for c_player in players:
+            print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
+        print()
+        if players[0].get_rounds_won() == players[1].get_rounds_won():
+            print("\nIts a Draw!")
+        else:
+            print("\nPlayer "+players[0].get_player_id()+" is the winner!")
 
     def play_again(self):
-        pass
+        #REMOVE
+        play_again = input("Play again? (y/n): ")
+        if play_again == "y":
+            return True
+        else:
+            return False
 
     def determine_order(self):
         equal = True
