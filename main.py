@@ -299,7 +299,11 @@ class tile():
 
 
 class hand():
-    def play_hand(self, players):
+
+    def ask_to_save_game(self):
+        return False
+
+    def play_hand(self, players, tournament_):
         consecutive_passes = 0
         all_empty_hands = all([len(x.hand) == 0 for x in players])
         while consecutive_passes != len(players) and not all_empty_hands:
@@ -325,6 +329,8 @@ class hand():
                     print()
                     print("Player " + c_player.get_player_id() + " passed")
                     consecutive_passes += 1
+            if self.ask_to_save_game():
+                tournament_.save_game()
             all_empty_hands = all([len(x.hand) == 0 for x in players])
         print("\n\nHand Over")
         print("Final Hands")
@@ -370,7 +376,7 @@ class hand():
 
 
 class Round():
-    def play_round(self, players, hand_num):
+    def play_round(self, players, hand_num, tournament_):
         # CLI
         print("\n\nStarting New Round: ")
         c_hand = hand()
@@ -378,25 +384,25 @@ class Round():
             print("\nHand: 1")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(5)
-            c_hand.play_hand(players)
+            c_hand.play_hand(players, tournament_)
             hand_num += 1
         if hand_num == 2:
             print("\nHand: 2")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(6)
-            c_hand.play_hand(players)
+            c_hand.play_hand(players, tournament_)
             hand_num += 1
         if hand_num == 3:
             print("\nHand: 3")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(6)
-            c_hand.play_hand(players)
+            c_hand.play_hand(players, tournament_)
             hand_num += 1
         if hand_num == 4:
             print("\nHand: 4")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(4)
-            c_hand.play_hand(players)
+            c_hand.play_hand(players, tournament_)
             hand_num += 1
         self.score_round(players)
 
@@ -436,6 +442,9 @@ class tournament():
         else:
             self.start_new_tournament(player_num, double_set_length)
 
+    def save_game(self):
+        return 0
+
     def load_game(self):
         pass
 
@@ -449,7 +458,7 @@ class tournament():
         round = Round()
         while True:
             self.determine_order()
-            round.play_round(self.players, hand_num=1)
+            round.play_round(self.players, hand_num=1, tournament_=self)
             if not self.play_again():
                 break
             else:
@@ -473,7 +482,6 @@ class tournament():
             print("\nPlayer "+players[0].get_player_id()+" is the winner!")
 
     def play_again(self):
-        #REMOVE
         play_again = input("Play again? (y/n): ")
         if play_again == "y":
             return True
