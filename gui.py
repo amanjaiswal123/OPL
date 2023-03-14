@@ -1,3 +1,5 @@
+import threading
+
 import pygame
 from threading import Thread
 from queue import Queue
@@ -18,6 +20,7 @@ class game_display():
         self.display_thread.start()
         self.event_queue = events_queue()
         self.stack_offset = 0
+        self.stack_select = False
 
     def run(self):
         self.intialize_screen()
@@ -50,7 +53,7 @@ class game_display():
         self.screen.fill((0, 0, 0))
         pygame.display.flip()
 
-    def draw_all_stacks(self):
+    def stack_listener(self):
         stacks = []
         for c_player in self.players:
             for tile in c_player.stack:
@@ -125,16 +128,15 @@ class game_display():
                     if event.key == pygame.K_RIGHT:
                         print('RIGHT')
                         self.stack_offset += 1
-                        self.draw_all_stacks()
+                        self.stack_listener()
                         pygame.display.flip()
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                     if event.key == pygame.K_LEFT:
                         print('LEFT')
                         self.stack_offset -= 1
-                        self.draw_all_stacks()
+                        self.stack_listener()
                         pygame.display.flip()
-                        self.event_queue.pop(self.event_queue.index(event))
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -142,14 +144,19 @@ class game_display():
                         for tile in c_player.stack:
                             if tile.rect != None:
                                 if tile.rect.collidepoint(event.pos):
-                                    print(tile)
-                                if event in self.event_queue:
-                                    self.event_queue.pop(self.event_queue.index(event))
-
+                                    if self.stack_select:
+                                        for tile_ in c_player.stack:
+                                            tile_.selected = False
+                                        tile.selected = True
+                                        print(tile)
+                                        return
+                                    if event in self.event_queue:
+                                        self.event_queue.pop(self.event_queue.index(event))
 
 class display_player_attributes():
     def __init__(self):
         self.hand_offset = 0
+        self.hand_select = False
     def draw_hand(self, screen):
         # Set up constants for the tile size, padding, and font
         tile_width = (screen.get_width() - 40) // 3
@@ -159,7 +166,7 @@ class display_player_attributes():
 
         font = pygame.font.SysFont(None, font_size)
         tiles_per_row = screen.get_width() // tile_width
-        max_offset = round((len(self.hand) / tiles_per_row)+.5)-1
+        max_offset = (len(self.hand) // tiles_per_row)-1
         if self.hand_offset > max_offset:
             self.hand_offset = max_offset
         if self.hand_offset < 0:
@@ -196,26 +203,34 @@ class display_player_attributes():
                         self.hand_offset += 1
                         self.draw_hand(screen)
                         pygame.display.flip()
-                        event_queue.pop(event_queue.index(event))
+                        if event in event_queue:
+                            event_queue.pop(event_queue.index(event))
                     if event.key == pygame.K_DOWN:
                         print('DOWN')
                         self.hand_offset -= 1
                         self.draw_hand(screen)
                         pygame.display.flip()
-                        event_queue.pop(event_queue.index(event))
+                        if event in event_queue:
+                            event_queue.pop(event_queue.index(event))
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for tile in self.hand:
                         if tile.rect != None:
-                            if tile.rect.collidepoint(event.pos):
+                            if tile.rect.collidepoint(event.pos) and self.hand_select:
+                                for tile_ in self.hand:
+                                    tile_.selected = False
+                                tile.selected = True
                                 print(tile)
                                 if event in event_queue:
                                     event_queue.pop(event_queue.index(event))
+                                return
+
 
 
 class DisplayTile:
 
     def __init__(self):
         self.rect = None
+        self.selected = False
 
     def draw_tile(self, screen, width,height, x, y, screen_x, screen_y):
         # draw the tile on the screen at x and y

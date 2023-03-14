@@ -111,7 +111,18 @@ class Player(display_player_attributes):
             self.boneyard.append(self.hand.pop(0))
 
     def move_from_hand_to_stack(self, hand_tile, stack, stack_tile):
-        stack[stack.index(stack_tile)] = self.hand.pop(self.hand.index(hand_tile))
+        print("\nHAND TILE:" + str(hand_tile))
+        print("\nSTACK TILE"+ str(stack_tile))
+        print("\nSTACK:")
+        for x in stack:
+            print(x)
+        tile_index = self.hand.index(hand_tile)
+        stack[stack.index(stack_tile)] = self.hand.pop(tile_index)
+        print("\nMOD STACK:")
+        for x in stack:
+            print(x)
+        x = 1
+
 
     def check_valid_move(self, hand_tile, stack_tile):
         valid_move = False
@@ -204,24 +215,56 @@ class Player(display_player_attributes):
             print("Error: Please enter Y or N")
             self.ask_reccomended_move(reccommened_move)
 
-    def get_move(self, players):
+    def get_move(self, players, tournament_):
+        stack_scroll_thread = Thread(target=tournament_.stack_scroll, args=[])
+        stack_scroll_thread.start()
+        hand_scroll_thread = Thread(target=self.hand_listener, args=[tournament_.event_queue, tournament_.screen])
+        hand_scroll_thread.start()
         reccommened_move = self.reccomend_move(players)
-        self.ask_reccomended_move(reccommened_move)
-        pass_ = self.ask_to_pass()
+     #   self.ask_reccomended_move(reccommened_move)
+        #pass_ = self.ask_to_pass()
+        pass_ = False
         if not pass_:
-            hand_tile = self.get_hand_tile()
-            stack_stack_tile = self.get_stack_tile(players)
-            stack = stack_stack_tile[0]
-            stack_tile = stack_stack_tile[1]
+            self.hand_select = True
+            #hand_tile = self.get_hand_tile()
+            print("Please enter a tile from your hand: ")
+            selected_tile = False
+            while not selected_tile:
+                for tile in self.hand:
+                    if tile.selected:
+                        hand_tile = tile
+                        tile.selected = False
+                        selected_tile = True
+                        break
+            self.hand_select = False
+            tournament_.stack_select = True
+            sleep(1)
+            print("Please enter a tile from your stack: ")
+            selected_tile = False
+            while not selected_tile:
+                for c_player in tournament_.players:
+                    for tile in c_player.stack:
+                        if tile.selected:
+                            stack_tile = tile
+                            tile.selected = False
+                            selected_tile = True
+                            break
+            #stack_stack_tile = self.get_stack_tile(players)
+            tournament_.stack_select = False
+            for c_player in players:
+                for tile in c_player.stack:
+                    if stack_tile == tile:
+                        stack = players[players.index(c_player)].stack
+                        break
             return [hand_tile, stack, stack_tile]
         elif pass_ and reccommened_move == "pass":
             return "pass"
         else:
             print("Error: Can only pass if no moves are available")
-            return self.get_move(players)
+            return self.get_move(players, tournament_)
 
-    def get_valid_move(self, players):
-        move = self.get_move(players)
+    def get_valid_move(self, players, tournament_):
+        move = self.get_move(players, tournament_)
         if move == "pass":
             return "pass"
         else:
@@ -232,7 +275,7 @@ class Player(display_player_attributes):
                 return [hand_tile, stack, stack_tile]
             else:
                 print("Error: Invalid move")
-                return self.get_valid_move(players)
+                return self.get_valid_move(players, tournament_)
     def score_hand(self):
         return sum(self.hand)
 
@@ -282,7 +325,7 @@ class Player(display_player_attributes):
 
 class Computer_Player(Player):
 
-    def get_move(self, players):
+    def get_move(self, players, tournament_):
         return self.reccomend_move(players)
 
     def seralize(self):
@@ -367,20 +410,18 @@ class hand():
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
                 self.display_hand(c_player)
-                tournament_.draw_all_stacks()
-                stack_scroll_thread = Thread(target=tournament_.stack_scroll, args=[])
-                stack_scroll_thread.start()
+                print()
+                tournament_.stack_listener()
                 c_player.draw_hand(tournament_.screen)
-                hand_scroll_thread = Thread(target=c_player.hand_listener, args=[tournament_.event_queue, tournament_.screen])
-                hand_scroll_thread.start()
-                while True:
-                    x = 1
                 self.display_stacks(players)
-                move = c_player.get_valid_move(players)
+                move = c_player.get_valid_move(players, tournament_)
                 if move != "pass":
                     hand_tile = move[0]
-                    stack = move[1]
                     stack_tile = move[2]
+                    for c_player_ in players:
+                        for tile_ in c_player_.stack:
+                            if str(tile_) ==  str(stack_tile):
+                                stack = c_player_.stack
                     print()
                     print("Player " + c_player.get_player_id() + " played tile ", end="")
                     hand_tile.display_tile()
@@ -538,13 +579,20 @@ class tournament(game_display):
         return filename
 
     def start_new_tournament(self, player_num, double_set_length):
-        for x in range(0, player_num):
+        for x in range(0, 3):
             temp_player = Computer_Player()
             ex_player_colors = [x.get_color() for x in self.players]
             ex_player_ids = [x.get_player_id() for x in self.players]
             temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
             print("Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
             self.players.append(temp_player)
+        ex_player_colors = [x.get_color() for x in self.players]
+        ex_player_ids = [x.get_player_id() for x in self.players]
+        temp_player = Player()
+        temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
+        print("Player Human " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+        self.players.append(temp_player)
+
         round = Round()
         while True:
             self.determine_order()
