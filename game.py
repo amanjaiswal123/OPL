@@ -1,12 +1,13 @@
 import os
 from random import randint, shuffle
-from gui import DisplayTile, display_player_attributes, Game_display
+from gui import DisplayTile, display_player_attributes, game_display
 from time import sleep
-
+from threading import Thread
 class Player(display_player_attributes):
     def __init__(self):
         #The playerID is used to identify the player. Primarily used to identify the turn of the player as well as
         #the tile owner within the stacks
+        super().__init__()
         self.playerID = None
         self.color = None
         self.boneyard = []
@@ -308,6 +309,7 @@ class Computer_Player(Player):
 class tile(DisplayTile):
 
     def __init__(self, left, right, player: Player):
+        super().__init__()
         self.left = left
         self.right = right
         self.player = player
@@ -365,8 +367,14 @@ class hand():
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
                 self.display_hand(c_player)
-#                c_player.draw_hand(tournament_.screen)
-                print()
+                tournament_.draw_all_stacks()
+                stack_scroll_thread = Thread(target=tournament_.stack_scroll, args=[])
+                stack_scroll_thread.start()
+                c_player.draw_hand(tournament_.screen)
+                hand_scroll_thread = Thread(target=c_player.hand_listener, args=[tournament_.event_queue, tournament_.screen])
+                hand_scroll_thread.start()
+                while True:
+                    x = 1
                 self.display_stacks(players)
                 move = c_player.get_valid_move(players)
                 if move != "pass":
@@ -493,18 +501,15 @@ class Round():
         return players[0]
 
 
-class tournament(Game_display):
+class tournament(game_display):
     def __init__(self, player_num=4, double_set_length=6):
         super().__init__()
         self.double_set_length = double_set_length
         self.player_num = player_num
         self.players = []
-        self.start_clicked = False
         sleep(1)
         self.start_game_screen()
-        while not self.start_clicked:
-            sleep(1)
-        self.start_new_tournament(player_num, double_set_length)
+
 
 
     def save_game(self,next:Player):

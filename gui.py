@@ -1,11 +1,24 @@
 import pygame
 from threading import Thread
+from queue import Queue
 
+class events_queue(list):
 
-class Game_display():
+    def get_events(self):
+        events = self
+        self.clear()
+        return events
+
+    def peek_events(self):
+        return list(self)
+
+class game_display():
     def __init__(self):
         self.display_thread = Thread(target=self.run)
         self.display_thread.start()
+        self.event_queue = events_queue()
+        self.stack_offset = 0
+
     def run(self):
         self.intialize_screen()
         while self.running:
@@ -17,6 +30,7 @@ class Game_display():
 
     def intialize_screen(self):
         pygame.init()
+        self.handle = True
         self.screen = pygame.display.set_mode((345, 750))
         self.running = True
         self.clock = pygame.time.Clock()
@@ -26,14 +40,54 @@ class Game_display():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and self.start_button_rect.collidepoint(event.pos):
-                self.start_clicked = True
-                # Start button pressed, set start_clicked to True
-
-
+            else:
+                self.event_queue.append(event)
+                if len(self.event_queue) > 50:
+                    self.event_queue.clear()
+                    print("Event queue overflowed, clearing queue")
+            # Start button pressed, set start_clicked to True
     def draw(self):
         self.screen.fill((0, 0, 0))
         pygame.display.flip()
+
+    def draw_all_stacks(self):
+        stacks = []
+        for c_player in self.players:
+            for tile in c_player.stack:
+                stacks.append(tile)
+        # Set up constants for the tile size, padding, and font
+        tile_width = (self.screen.get_width() - 40) // 3
+        tile_height = tile_width * 1.5
+        padding = 10
+        font_size = 36
+
+        font = pygame.font.SysFont(None, font_size)
+        tiles_per_row = self.screen.get_width() // tile_width
+        total_rows = (self.screen.get_height() // tile_height) - 1
+        max_offset = round((len(stacks) / (tiles_per_row * total_rows)) + .5) -1
+        if self.stack_offset > max_offset:
+            self.stack_offset = max_offset
+        if self.stack_offset < 0:
+            self.stack_offset = 0
+        start_index = int(self.stack_offset * tiles_per_row * total_rows)
+        end_index = int(start_index + (tiles_per_row * total_rows))
+
+        tiles_surface = pygame.Surface((self.screen.get_width(), (tile_height*total_rows + (padding * total_rows))+padding))
+        tiles_surface.fill((255, 255, 255))
+        i = 0
+        for tile in stacks[start_index:end_index]:
+            x = padding + (i % tiles_per_row) * (tile_width + padding)
+            y = ((i // tiles_per_row) * (tile_height + padding)) + padding
+            screen_x = x
+            screen_y = y
+            tile.draw_tile(tiles_surface, tile_width, tile_height, x, y, screen_x, screen_y)
+            self.screen.blit(tiles_surface, (0, 0))
+            pygame.display.flip()
+            i += 1
+        for tile in stacks[0:start_index]:
+            tile.rect = None
+        for tile in stacks[end_index:]:
+            tile.rect = None
 
     def start_game_screen(self):
         # Set up the background image
@@ -52,13 +106,49 @@ class Game_display():
         self.screen.blit(scaled_background_image, (0, 0))
         self.screen.blit(scaled_start_button_image, self.start_button_rect)
 
+
         # Update the display
         pygame.display.flip()
+        check = True
+        while check:
+            for event in self.event_queue.get_events():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.start_button_rect.collidepoint(event.pos):
+                        check = False
+                        break
+        self.start_new_tournament(self.player_num, self.double_set_length)
+
+    def stack_scroll(self):
+        while True:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RIGHT:
+                        print('RIGHT')
+                        self.stack_offset += 1
+                        self.draw_all_stacks()
+                        pygame.display.flip()
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                    if event.key == pygame.K_LEFT:
+                        print('LEFT')
+                        self.stack_offset -= 1
+                        self.draw_all_stacks()
+                        pygame.display.flip()
+                        self.event_queue.pop(self.event_queue.index(event))
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for c_player in self.players:
+                        for tile in c_player.stack:
+                            if tile.rect != None:
+                                if tile.rect.collidepoint(event.pos):
+                                    print(tile)
+                                if event in self.event_queue:
+                                    self.event_queue.pop(self.event_queue.index(event))
 
 
 class display_player_attributes():
-    def __init__(self, hand):
-        self.hand = hand
+    def __init__(self):
         self.hand_offset = 0
     def draw_hand(self, screen):
         # Set up constants for the tile size, padding, and font
@@ -68,29 +158,66 @@ class display_player_attributes():
         font_size = 36
 
         font = pygame.font.SysFont(None, font_size)
-        max_rows = (screen.get_height() - 40) // tile_height
         tiles_per_row = screen.get_width() // tile_width
-        total_rows = (len(self.hand) + tiles_per_row - 1) // tiles_per_row
-        max_offset = max(0, total_rows - max_rows)
-        self.hand_offset = min(max_offset, max(0, self.hand_offset))
+        max_offset = round((len(self.hand) / tiles_per_row)+.5)-1
+        if self.hand_offset > max_offset:
+            self.hand_offset = max_offset
+        if self.hand_offset < 0:
+            self.hand_offset = 0
         start_index = self.hand_offset * tiles_per_row
-        end_index = min(start_index + max_rows * tiles_per_row, len(self.hand))
+        end_index = start_index + tiles_per_row
 
         tiles_surface = pygame.Surface((screen.get_width(), tile_height+padding*2))
         tiles_surface.fill((255, 255, 255))
-
-        for i in range(start_index, end_index):
-            tile = self.hand[i]
+        i = 0
+        for tile in self.hand[start_index:end_index]:
             x = padding + (i % tiles_per_row) * (tile_width + padding)
-            y = ((i // tiles_per_row + max_offset) * (tile_height + padding))+padding
-
-            tile.draw_tile(tiles_surface, tile_width, tile_height, x, y)
+            y = ((i // tiles_per_row) * (tile_height + padding))+padding
+            screen_x = x
+            screen_y = screen.get_height() - tiles_surface.get_height() + y
+            tile.draw_tile(tiles_surface, tile_width, tile_height, x, y, screen_x, screen_y)
+            i += 1
         screen.blit(tiles_surface, (0, screen.get_height() - tiles_surface.get_height()))
+        pygame.display.flip()
+        for tile in self.hand[0:start_index]:
+            tile.rect = None
+        for tile in self.hand[end_index:]:
+            tile.rect = None
+
+
+
+
+    def hand_listener(self, event_queue, screen):
+        while True:
+            for event in event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key ==  pygame.K_UP:
+                        print('UP')
+                        self.hand_offset += 1
+                        self.draw_hand(screen)
+                        pygame.display.flip()
+                        event_queue.pop(event_queue.index(event))
+                    if event.key == pygame.K_DOWN:
+                        print('DOWN')
+                        self.hand_offset -= 1
+                        self.draw_hand(screen)
+                        pygame.display.flip()
+                        event_queue.pop(event_queue.index(event))
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for tile in self.hand:
+                        if tile.rect != None:
+                            if tile.rect.collidepoint(event.pos):
+                                print(tile)
+                                if event in event_queue:
+                                    event_queue.pop(event_queue.index(event))
 
 
 class DisplayTile:
 
-    def draw_tile(self, screen, width,height, x, y):
+    def __init__(self):
+        self.rect = None
+
+    def draw_tile(self, screen, width,height, x, y, screen_x, screen_y):
         # draw the tile on the screen at x and y
         # with a horizontal line separating two numbers
         if self.player.color == "B":
@@ -120,3 +247,4 @@ class DisplayTile:
         tile_surface.blit(bottom_num, bottom_num_center)
         screen.blit(tile_surface, (x, y))
         pygame.display.flip()
+        self.rect = pygame.rect.Rect(screen_x, screen_y, TILE_WIDTH, TILE_HEIGHT)
