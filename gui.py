@@ -22,6 +22,7 @@ class game_display():
         self.stack_offset = 0
         self.stack_select = False
 
+
     def run(self):
         self.intialize_screen()
         while self.running:
@@ -145,7 +146,50 @@ class game_display():
                             self.event_queue.pop(self.event_queue.index(event))
                         return True
 
+    def draw_play_another_round(self, ):
+        button_width = 80
+        button_height = 80
+        prompt = "Play another round?"
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        prompt_surface = pygame.Surface((width, height))
+        prompt_surface.fill((200, 200, 200))
+        prompt_font = pygame.font.SysFont(None, 36)
+        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
+        prompt_rect = prompt_text.get_rect(center=(width // 2, height // 2 - 50))
+        prompt_surface.blit(prompt_text, prompt_rect)
 
+        yes_button_image = pygame.image.load("yes.png").convert_alpha()
+        scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
+        yes_button_rect = scaled_yes_button_image.get_rect()
+        yes_button_rect.topleft = (width // 2 - button_width - 50, height // 2)
+
+        no_button_image = pygame.image.load("no.png").convert_alpha()
+        scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
+        no_button_rect = scaled_no_button_image.get_rect()
+        no_button_rect.topleft = (width // 2 + 50, height // 2)
+
+        prompt_surface.blit(scaled_yes_button_image, yes_button_rect)
+        prompt_surface.blit(scaled_no_button_image, no_button_rect)
+
+        self.screen.blit(prompt_surface, (0, 0))
+
+        pygame.display.flip()
+
+        check = True
+        while check:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_n:
+                        print('N')
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return False
+                    if event.key == pygame.K_y:
+                        print('Y')
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return True
     def draw_prompt(self, prompt:str, display_time=3):
 
 
@@ -198,8 +242,48 @@ class game_display():
             right_left.draw_tile(tiles_surface, tile_width, tile_height, right_x, y, screen_x, screen_y)
             right_left.rect = t_rect
         self.screen.blit(tiles_surface, (0, int(self.screen.get_height()//5*3-5)))
+        pygame.display.flip()
+
+
+    def draw_scores(self, dict, key_col_name, val_col_name, header):
+        self.screen.fill((0, 0, 0))
+        col1_x = self.screen.get_width() // 4
+        col2_x = self.screen.get_width() * 3 // 4
+        title_font = pygame.font.SysFont(None, 36)
+        title_text = header
+        title_color = (255, 255, 255)
+        title_surface = title_font.render(title_text, True, title_color)
+        title_rect = title_surface.get_rect(center=(self.screen.get_width() // 2, 20))
+        self.screen.blit(title_surface, title_rect)
+
+        header_font = pygame.font.SysFont(None, 24)
+        header_text = [key_col_name, val_col_name]
+        header_color = (255, 255, 255)
+        header_height = 60
+
+        for i, text in enumerate(header_text):
+            header_surface = header_font.render(text, True, header_color)
+            header_rect = header_surface.get_rect()
+            header_rect.midtop = (col1_x if i == 0 else col2_x, title_rect.bottom + 10)
+            self.screen.blit(header_surface, header_rect)
+
+        content_font = pygame.font.SysFont(None, 20)
+        content_color = (255, 255, 255)
+        row_height = 30
+
+        for index, (player_id, player_score) in enumerate(dict.items()):
+            player_id_surface = content_font.render(str(player_id), True, content_color)
+            player_id_rect = player_id_surface.get_rect()
+            player_id_rect.midtop = (col1_x, header_height + index * row_height)
+            self.screen.blit(player_id_surface, player_id_rect)
+
+            score_surface = content_font.render(str(player_score), True, content_color)
+            score_rect = score_surface.get_rect()
+            score_rect.midtop = (col2_x, header_height + index * row_height)
+            self.screen.blit(score_surface, score_rect)
 
         pygame.display.flip()
+        sleep(5)
 
 
 

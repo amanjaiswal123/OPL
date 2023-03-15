@@ -268,6 +268,7 @@ class Player(display_player_attributes):
             return "pass"
         else:
             print("Error: Can only pass if no moves are available")
+            tournament_.draw_prompt("Can only pass if no moves are available",2)
             return self.get_move(players, tournament_)
 
     def get_valid_move(self, players, tournament_):
@@ -282,7 +283,7 @@ class Player(display_player_attributes):
                 return [hand_tile, stack, stack_tile]
             else:
                 print("Error: Invalid move")
-                tournament_.draw_prompt("Invalid move")
+                tournament_.draw_prompt("Invalid move",2)
                 return self.get_valid_move(players, tournament_)
     def score_hand(self):
         return sum(self.hand)
@@ -335,10 +336,13 @@ class Computer_Player(Player):
 
     def get_move(self, players, tournament_):
         move = self.reccomend_move(players)
-        hand_tile = move[0]
-        stack_tile = move[2]
-        tournament_.draw_move(hand_tile, stack_tile)
-        sleep(5)
+        if move != "pass":
+            hand_tile = move[0]
+            stack_tile = move[2]
+            tournament_.draw_move(hand_tile, stack_tile)
+        else:
+            tournament_.draw_prompt("PASS", 0)
+        sleep(2)
         return move
 
     def seralize(self):
@@ -422,6 +426,7 @@ class hand():
         while consecutive_passes != len(players) and not all_empty_hands:
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
+                tournament_.draw_prompt("Player " + c_player.get_player_id() + "'s turn", 1)
                 self.display_hand(c_player)
                 print()
                 tournament_.draw_all_stacks()
@@ -464,12 +469,16 @@ class hand():
         print("Scoring Hands:")
         hand_scores = self.score_hand(players)
         stack_scores = self.score_stacks(players)
+        final_scores = {}
         for c_player in players:
-            score = stack_scores[c_player.get_player_id()]-hand_scores[c_player.get_player_id()]
+            score = stack_scores[c_player.get_player_id()] - hand_scores[c_player.get_player_id()]
+            final_scores[c_player.get_player_id()] = score
             c_player.score += score
             print("Player " + c_player.get_player_id() + " scored " + str(score) + " points")
+        tournament_.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
         for c_player in players:
             c_player.clear_hand()
+
 
     def score_stacks(self, players):
         scores = {}
@@ -544,8 +553,11 @@ class Round():
         players = sorted(players, key=lambda x: x.rounds_won, reverse=True)
         print()
         print("Final Rankings: ")
+        final_scores = {}
         for c_player in players:
+            final_scores[c_player.get_player_id()] = c_player.get_rounds_won()
             print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
+        self.draw_scores(final_scores, "Player ID's", "Rounds Won", "Final Rounds Won")
         print()
         print("Player "+players[0].get_player_id()+" is the current leader")
 
@@ -610,7 +622,7 @@ class tournament(game_display):
         while True:
             self.determine_order()
             round.play_round(self.players, hand_num=1, tournament_=self)
-            if not self.play_again():
+            if not self.draw_play_another_round():
                 break
             else:
                 for c_player in self.players:
