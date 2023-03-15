@@ -1,5 +1,5 @@
 import threading
-
+from time import sleep
 import pygame
 from threading import Thread
 from queue import Queue
@@ -48,7 +48,6 @@ class game_display():
                 if len(self.event_queue) > 50:
                     self.event_queue.clear()
                     print("Event queue overflowed, clearing queue")
-            # Start button pressed, set start_clicked to True
     def draw(self):
         self.screen.fill((0, 0, 0))
         pygame.display.flip()
@@ -58,7 +57,6 @@ class game_display():
         for c_player in self.players:
             for tile in c_player.stack:
                 stacks.append(tile)
-        # Set up constants for the tile size, padding, and font
         padding = 10
         tiles_per_row = 3
         total_rows = 3
@@ -92,25 +90,134 @@ class game_display():
         for tile in stacks[end_index:]:
             tile.rect = None
 
+    def draw_yes_no_prompt(self, prompt:str):
+        button_width = 45
+        button_height = 45
+
+        width = self.screen.get_width()
+        height = (self.screen.get_height()-10) / 5
+        prompt_surface = pygame.Surface((width, height))
+        prompt_surface.fill((200, 200, 200))
+        prompt_font = pygame.font.SysFont(None, 24)
+        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
+        prompt_rect = prompt_text.get_rect(center=(width // 2, 40))
+        prompt_surface.blit(prompt_text, prompt_rect)
+
+        yes_button_image = pygame.image.load("yes.png").convert_alpha()
+        scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
+        yes_button_rect = scaled_yes_button_image.get_rect()
+        yes_button_rect.topleft = ((self.screen.get_width())/2-35-25, 80)
+
+        no_button_image = pygame.image.load("no.png").convert_alpha()
+        scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
+        no_button_rect = scaled_no_button_image.get_rect()
+        no_button_rect.topleft = ((self.screen.get_width())/2-35+25, 80)
+
+
+
+        prompt_surface.blit(scaled_yes_button_image, yes_button_rect)
+        prompt_surface.blit(scaled_no_button_image, no_button_rect)
+
+        self.screen.blit(prompt_surface, (0, int(self.screen.get_height()//5*3-5)))
+
+        pygame.display.flip()
+
+        check = True
+        while check:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_n:
+                        print('N')
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        prompt_surface = pygame.Surface((width, height))
+                        prompt_surface.fill((200, 200, 200))
+                        self.screen.blit(prompt_surface, (0, int(self.screen.get_height() // 5 * 3 - 5)))
+                        pygame.display.flip()
+                        return False
+                    if event.key == pygame.K_y:
+                        print('Y')
+                        prompt_surface = pygame.Surface((width, height))
+                        prompt_surface.fill((200, 200, 200))
+                        self.screen.blit(prompt_surface, (0, int(self.screen.get_height() // 5 * 3 - 5)))
+                        pygame.display.flip()
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return True
+
+
+    def draw_prompt(self, prompt:str, display_time=3):
+
+
+        width = self.screen.get_width()
+        height = (self.screen.get_height()-10) / 5
+        prompt_surface = pygame.Surface((width, height))
+        prompt_surface.fill((200, 200, 200))
+        prompt_font = pygame.font.SysFont(None, 24)
+        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
+        prompt_rect = prompt_text.get_rect(center=(width // 2, height // 2))
+        prompt_surface.blit(prompt_text, prompt_rect)
+
+        self.screen.blit(prompt_surface, (0, int(self.screen.get_height()//5*3-5)))
+
+        pygame.display.flip()
+        sleep(display_time)
+
+    def draw_move(self, left_tile, right_left="None"):
+        button_width = 45
+        button_height = 45
+
+        right_arrow = pygame.image.load("right-arrow.png").convert_alpha()
+        right_arrow_button_image = pygame.transform.scale(right_arrow, (button_width, button_height))
+        right_arrow_rect = right_arrow_button_image.get_rect()
+        right_arrow_rect.topleft = ((self.screen.get_width())/2-35, 60)
+
+        width = self.screen.get_width()
+        height = (self.screen.get_height()-10) / 5
+        tiles_surface = pygame.Surface((width, height))
+        tiles_surface.blit(right_arrow_button_image, right_arrow_rect)
+
+
+        padding = 10
+        total_rows = 1
+        tile_width = (self.screen.get_width() - padding*3-padding) // 3
+        tile_height = (self.screen.get_height() - padding*3*2) // 5
+        font_size = 36
+
+        left_x = padding
+
+        y = padding
+        screen_x = left_x
+        screen_y = y
+        t_rect = left_tile.rect
+        left_tile.draw_tile(tiles_surface, tile_width, tile_height, left_x, y, screen_x, screen_y)
+        left_tile.rect = t_rect
+        if str(right_left) != "None":
+            right_x = tile_width * 2 + padding * 2
+            t_rect = right_left.rect
+            right_left.draw_tile(tiles_surface, tile_width, tile_height, right_x, y, screen_x, screen_y)
+            right_left.rect = t_rect
+        self.screen.blit(tiles_surface, (0, int(self.screen.get_height()//5*3-5)))
+
+        pygame.display.flip()
+
+
+
     def start_game_screen(self):
-        # Set up the background image
         background_image = pygame.image.load("background.jpg").convert()
         scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
 
-        # Set up the start button
         start_button_image = pygame.image.load("start_button.png").convert_alpha()
-        button_width = round(self.screen.get_size()[0] * 0.3)  # 30% of the screen width
-        button_height = round(self.screen.get_size()[1] * 0.2)  # 20% of the screen height
+        button_width = round(self.screen.get_size()[0] * 0.3)
+        button_height = round(self.screen.get_size()[1] * 0.2)
         scaled_start_button_image = pygame.transform.scale(start_button_image, (button_width, button_height))
         self.start_button_rect = scaled_start_button_image.get_rect()
         self.start_button_rect.center = (self.screen.get_width() // 2, self.screen.get_height() // 2)
 
-        # Draw the background and start button
         self.screen.blit(scaled_background_image, (0, 0))
         self.screen.blit(scaled_start_button_image, self.start_button_rect)
 
 
-        # Update the display
         pygame.display.flip()
         check = True
         while check:
@@ -158,7 +265,6 @@ class display_player_attributes():
         self.hand_offset = 0
         self.hand_select = False
     def draw_hand(self, screen):
-        # Set up constants for the tile size, padding, and font
 
         total_rows = 1
         padding = 10
@@ -192,6 +298,7 @@ class display_player_attributes():
             tile.rect = None
         for tile in self.hand[end_index:]:
             tile.rect = None
+
 
 
 
@@ -235,8 +342,6 @@ class DisplayTile:
         self.selected = False
 
     def draw_tile(self, screen, width,height, x, y, screen_x, screen_y):
-        # draw the tile on the screen at x and y
-        # with a horizontal line separating two numbers
         if self.player.color == "B":
             primary_color = (255, 255, 255)
             alt_color = (0, 0, 0)

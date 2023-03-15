@@ -221,9 +221,13 @@ class Player(display_player_attributes):
         hand_scroll_thread = Thread(target=self.hand_listener, args=[tournament_.event_queue, tournament_.screen])
         hand_scroll_thread.start()
         reccommened_move = self.reccomend_move(players)
-     #   self.ask_reccomended_move(reccommened_move)
-        #pass_ = self.ask_to_pass()
-        pass_ = False
+        rec_move = tournament_.draw_yes_no_prompt("Would you like a recommended move?")
+        if rec_move:
+            rec_hand_tile = reccommened_move[0]
+            rec_stack_tile = reccommened_move[2]
+            tournament_.draw_move(rec_hand_tile,rec_stack_tile)
+            sleep(3)
+        pass_ = tournament_.draw_yes_no_prompt("Would you like to pass?")
         if not pass_:
             self.hand_select = True
             #hand_tile = self.get_hand_tile()
@@ -237,6 +241,7 @@ class Player(display_player_attributes):
                         selected_tile = True
                         break
             self.hand_select = False
+            tournament_.draw_move(hand_tile)
             tournament_.stack_select = True
             sleep(1)
             print("Please enter a tile from your stack: ")
@@ -251,6 +256,8 @@ class Player(display_player_attributes):
                             break
             #stack_stack_tile = self.get_stack_tile(players)
             tournament_.stack_select = False
+            tournament_.draw_move(hand_tile,stack_tile)
+            sleep(5)
             for c_player in players:
                 for tile in c_player.stack:
                     if stack_tile == tile:
@@ -275,6 +282,7 @@ class Player(display_player_attributes):
                 return [hand_tile, stack, stack_tile]
             else:
                 print("Error: Invalid move")
+                tournament_.draw_prompt("Invalid move")
                 return self.get_valid_move(players, tournament_)
     def score_hand(self):
         return sum(self.hand)
@@ -326,7 +334,12 @@ class Player(display_player_attributes):
 class Computer_Player(Player):
 
     def get_move(self, players, tournament_):
-        return self.reccomend_move(players)
+        move = self.reccomend_move(players)
+        hand_tile = move[0]
+        stack_tile = move[2]
+        tournament_.draw_move(hand_tile, stack_tile)
+        sleep(5)
+        return move
 
     def seralize(self):
         string = ""
