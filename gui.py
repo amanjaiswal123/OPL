@@ -4,6 +4,20 @@ import pygame
 from threading import Thread
 from queue import Queue
 
+
+
+
+# The gui works by having a thread run iterate through the event queue which takes the events and adds them to
+# the event queue object. Which can then be accessed by the main thread. The main thread then calls the gui functions.
+# this is done because pygame must have a thread running to handle events. But the pygame.getevents() function removes
+# the events from the queue. So the events must be stored in a seperate object that allows two functions to read at the
+# same time without removing the events from the queue.
+
+
+#The listeners work by having a thread iterate through the event queue object and checkk if the event is matching.
+
+
+
 class events_queue(list):
 
     def get_events(self):
@@ -75,7 +89,7 @@ class game_display():
         end_index = int(start_index + (tiles_per_row * total_rows))
 
         tiles_surface = pygame.Surface((self.screen.get_width(), (tile_height*total_rows + (padding * total_rows))+padding))
-        tiles_surface.fill((255, 255, 255))
+        tiles_surface.fill((200, 200, 200))
         i = 0
         for tile in stacks[start_index:end_index]:
             x = padding + (i % tiles_per_row) * (tile_width + padding)
@@ -207,25 +221,26 @@ class game_display():
         pygame.display.flip()
         sleep(display_time)
 
-    def draw_move(self, left_tile, right_left="None"):
+    def draw_move(self, left_tile, right_tile="None"):
         button_width = 45
         button_height = 45
 
         right_arrow = pygame.image.load("right-arrow.png").convert_alpha()
         right_arrow_button_image = pygame.transform.scale(right_arrow, (button_width, button_height))
         right_arrow_rect = right_arrow_button_image.get_rect()
-        right_arrow_rect.topleft = ((self.screen.get_width())/2-35, 60)
+        right_arrow_rect.topleft = ((self.screen.get_width())/2-25, 60)
 
         width = self.screen.get_width()
         height = (self.screen.get_height()-10) / 5
         tiles_surface = pygame.Surface((width, height))
+        tiles_surface.fill((200, 200, 200))
         tiles_surface.blit(right_arrow_button_image, right_arrow_rect)
 
 
         padding = 10
         total_rows = 1
         tile_width = (self.screen.get_width() - padding*3-padding) // 3
-        tile_height = (self.screen.get_height() - padding*3*2) // 5
+        tile_height = ((self.screen.get_height() - padding*3*4) // 5)
         font_size = 36
 
         left_x = padding
@@ -236,13 +251,23 @@ class game_display():
         t_rect = left_tile.rect
         left_tile.draw_tile(tiles_surface, tile_width, tile_height, left_x, y, screen_x, screen_y)
         left_tile.rect = t_rect
-        if str(right_left) != "None":
-            right_x = tile_width * 2 + padding * 2
-            t_rect = right_left.rect
-            right_left.draw_tile(tiles_surface, tile_width, tile_height, right_x, y, screen_x, screen_y)
-            right_left.rect = t_rect
+        if str(right_tile) != "None":
+            right_x = tile_width * 2 + padding * 3
+            t_rect = right_tile.rect
+            right_tile.draw_tile(tiles_surface, tile_width, tile_height, right_x, y, screen_x, screen_y)
+            right_tile.rect = t_rect
         self.screen.blit(tiles_surface, (0, int(self.screen.get_height()//5*3-5)))
         pygame.display.flip()
+
+        if str(right_tile) is not "None":
+            while True:
+                for event in self.event_queue.peek_events():
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_RETURN:
+                            print('Enter')
+                            if event in self.event_queue:
+                                self.event_queue.pop(self.event_queue.index(event))
+                            return
 
 
     def draw_scores(self, dict, key_col_name, val_col_name, header):
@@ -283,7 +308,14 @@ class game_display():
             self.screen.blit(score_surface, score_rect)
 
         pygame.display.flip()
-        sleep(5)
+        while True:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        print('Enter')
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return
 
 
 
@@ -305,11 +337,14 @@ class game_display():
         pygame.display.flip()
         check = True
         while check:
-            for event in self.event_queue.get_events():
+            for event in self.event_queue.peek_events():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.start_button_rect.collidepoint(event.pos):
                         check = False
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
                         break
+
         self.start_new_tournament(self.player_num, self.double_set_length)
 
     def stack_scroll(self):
@@ -367,7 +402,7 @@ class display_player_attributes():
         end_index = start_index + tiles_per_row * total_rows
 
         tiles_surface = pygame.Surface((screen.get_width(), tile_height+padding*2))
-        tiles_surface.fill((255, 255, 255))
+        tiles_surface.fill((200, 200, 200))
         i = 0
         for tile in self.hand[start_index:end_index]:
             x = padding + (i % tiles_per_row) * (tile_width + padding)

@@ -4,17 +4,27 @@ from gui import DisplayTile, display_player_attributes, game_display
 from time import sleep
 from threading import Thread
 class Player(display_player_attributes):
+    # The player class is used to create a player object. The player object is used to store the player's data including
+    #  their player id, color, boneyard, hand, stacks, score, and rounds won.
     def __init__(self):
         #The playerID is used to identify the player. Primarily used to identify the turn of the player as well as
         #the tile owner within the stacks
         super().__init__()
+        #The player's ID used to identify the player
         self.playerID = None
+        #The player's color used to identify the player's tiles
         self.color = None
+        #The player's boneyard is a list of tile objects in the player's boneyard. A list of tile objects
         self.boneyard = []
+        #The player's hand is a list of tile objects inplayer's hand
         self.hand = []
+        #The player's stack is a list of tile objects in the stacks
         self.stack = []
+        #Represents the score of the player per round. Is reset every new round
         self.score = 0
+        #Represents the number of rounds the player has won
         self.rounds_won = 0
+        #Used to scroll through the player's hand in gui.hand_listener
         self.hand_offset = 0
 
     def get_player_id(self):
@@ -226,7 +236,6 @@ class Player(display_player_attributes):
             rec_hand_tile = reccommened_move[0]
             rec_stack_tile = reccommened_move[2]
             tournament_.draw_move(rec_hand_tile,rec_stack_tile)
-            sleep(3)
         pass_ = tournament_.draw_yes_no_prompt("Would you like to pass?")
         if not pass_:
             self.hand_select = True
@@ -257,7 +266,6 @@ class Player(display_player_attributes):
             #stack_stack_tile = self.get_stack_tile(players)
             tournament_.stack_select = False
             tournament_.draw_move(hand_tile,stack_tile)
-            sleep(5)
             for c_player in players:
                 for tile in c_player.stack:
                     if stack_tile == tile:
@@ -342,7 +350,6 @@ class Computer_Player(Player):
             tournament_.draw_move(hand_tile, stack_tile)
         else:
             tournament_.draw_prompt("PASS", 0)
-        sleep(2)
         return move
 
     def seralize(self):
@@ -423,7 +430,7 @@ class hand():
     def play_hand(self, players, tournament_):
         consecutive_passes = 0
         all_empty_hands = all([len(x.hand) == 0 for x in players])
-        while consecutive_passes != len(players) and not all_empty_hands:
+        while consecutive_passes < len(players) and not all_empty_hands:
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
                 tournament_.draw_prompt("Player " + c_player.get_player_id() + "'s turn", 1)
