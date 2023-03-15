@@ -53,20 +53,20 @@ class game_display():
         self.screen.fill((0, 0, 0))
         pygame.display.flip()
 
-    def stack_listener(self):
+    def draw_all_stacks(self):
         stacks = []
         for c_player in self.players:
             for tile in c_player.stack:
                 stacks.append(tile)
         # Set up constants for the tile size, padding, and font
-        tile_width = (self.screen.get_width() - 40) // 3
-        tile_height = tile_width * 1.5
         padding = 10
+        tiles_per_row = 3
+        total_rows = 3
+        tile_width = (self.screen.get_width() - padding*tiles_per_row-padding) // tiles_per_row
+        tile_height = (self.screen.get_height() - padding*total_rows*2) // 5
         font_size = 36
 
         font = pygame.font.SysFont(None, font_size)
-        tiles_per_row = self.screen.get_width() // tile_width
-        total_rows = (self.screen.get_height() // tile_height) - 1
         max_offset = round((len(stacks) / (tiles_per_row * total_rows)) + .5) -1
         if self.stack_offset > max_offset:
             self.stack_offset = max_offset
@@ -128,14 +128,14 @@ class game_display():
                     if event.key == pygame.K_RIGHT:
                         print('RIGHT')
                         self.stack_offset += 1
-                        self.stack_listener()
+                        self.draw_all_stacks()
                         pygame.display.flip()
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                     if event.key == pygame.K_LEFT:
                         print('LEFT')
                         self.stack_offset -= 1
-                        self.stack_listener()
+                        self.draw_all_stacks()
                         pygame.display.flip()
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
@@ -159,20 +159,22 @@ class display_player_attributes():
         self.hand_select = False
     def draw_hand(self, screen):
         # Set up constants for the tile size, padding, and font
-        tile_width = (screen.get_width() - 40) // 3
-        tile_height = tile_width * 1.5
+
+        total_rows = 1
         padding = 10
+        tiles_per_row = 3
+        tile_width = (screen.get_width() - padding*tiles_per_row-padding) // tiles_per_row
+        tile_height = (screen.get_height() - padding*total_rows-padding) // 5
         font_size = 36
 
         font = pygame.font.SysFont(None, font_size)
-        tiles_per_row = screen.get_width() // tile_width
         max_offset = (len(self.hand) // tiles_per_row)-1
         if self.hand_offset > max_offset:
             self.hand_offset = max_offset
         if self.hand_offset < 0:
             self.hand_offset = 0
-        start_index = self.hand_offset * tiles_per_row
-        end_index = start_index + tiles_per_row
+        start_index = self.hand_offset * tiles_per_row * total_rows
+        end_index = start_index + tiles_per_row * total_rows
 
         tiles_surface = pygame.Surface((screen.get_width(), tile_height+padding*2))
         tiles_surface.fill((255, 255, 255))

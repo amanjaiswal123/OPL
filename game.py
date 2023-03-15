@@ -411,7 +411,7 @@ class hand():
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
                 self.display_hand(c_player)
                 print()
-                tournament_.stack_listener()
+                tournament_.draw_all_stacks()
                 c_player.draw_hand(tournament_.screen)
                 self.display_stacks(players)
                 move = c_player.get_valid_move(players, tournament_)
