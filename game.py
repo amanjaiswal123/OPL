@@ -1,11 +1,30 @@
 import os
 from random import randint, shuffle
-from gui import DisplayTile, display_player_attributes, game_display
+from gui import DisplayTile, board_display
 from time import sleep
 from threading import Thread
-class Player(display_player_attributes):
+class Player():
     # The player class is used to create a player object. The player object is used to store the player's data including
     #  their player id, color, boneyard, hand, stacks, score, and rounds won.
+
+    #*********************************************************************
+#Function Name: init
+#Purpose: To initialize a new player object with default attributes
+#Parameters: None
+#Return Value: None
+#Assistance Received: None
+#Algorithm:
+
+#1) Call the constructor of the superclass
+#2) Set playerID attribute to None
+#3) Set color attribute to None
+#4) Initialize an empty boneyard list to hold the player's tiles
+#5) Initialize an empty hand list to hold the player's tiles
+#6) Initialize an empty stack list to hold the tiles in the stacks
+#7) Set score attribute to 0
+#8) Set rounds_won attribute to 0
+#9) Set hand_offset attribute to 0
+#*********************************************************************
     def __init__(self):
         #The playerID is used to identify the player. Primarily used to identify the turn of the player as well as
         #the tile owner within the stacks
@@ -27,6 +46,7 @@ class Player(display_player_attributes):
         #Used to scroll through the player's hand in gui.hand_listener
         self.hand_offset = 0
 
+    #
     def get_player_id(self):
         return self.playerID
 
@@ -225,20 +245,20 @@ class Player(display_player_attributes):
             print("Error: Please enter Y or N")
             self.ask_reccomended_move(reccommened_move)
 
-    def get_move(self, players, tournament_):
-        stack_scroll_thread = Thread(target=tournament_.stack_scroll, args=[])
+    def get_move(self, players, game_display):
+        stack_scroll_thread = Thread(target=game_display.stack_scroll, args=[players])
         stack_scroll_thread.start()
-        hand_scroll_thread = Thread(target=self.hand_listener, args=[tournament_.event_queue, tournament_.screen])
+        hand_scroll_thread = Thread(target=game_display.hand_listener, args=[self.hand])
         hand_scroll_thread.start()
         reccommened_move = self.reccomend_move(players)
-        rec_move = tournament_.draw_yes_no_prompt("Would you like a recommended move?")
+        rec_move = game_display.draw_yes_no_prompt("Would you like a recommended move?")
         if rec_move:
             rec_hand_tile = reccommened_move[0]
             rec_stack_tile = reccommened_move[2]
-            tournament_.draw_move(rec_hand_tile,rec_stack_tile)
-        pass_ = tournament_.draw_yes_no_prompt("Would you like to pass?")
+            game_display.draw_move(rec_hand_tile,rec_stack_tile)
+        pass_ = game_display.draw_yes_no_prompt("Would you like to pass?")
         if not pass_:
-            self.hand_select = True
+            game_display.hand_select = True
             #hand_tile = self.get_hand_tile()
             print("Please enter a tile from your hand: ")
             selected_tile = False
@@ -249,14 +269,14 @@ class Player(display_player_attributes):
                         tile.selected = False
                         selected_tile = True
                         break
-            self.hand_select = False
-            tournament_.draw_move(hand_tile)
-            tournament_.stack_select = True
+            game_display.hand_select = False
+            game_display.draw_move(hand_tile)
+            game_display.stack_select = True
             sleep(1)
             print("Please enter a tile from your stack: ")
             selected_tile = False
             while not selected_tile:
-                for c_player in tournament_.players:
+                for c_player in players:
                     for tile in c_player.stack:
                         if tile.selected:
                             stack_tile = tile
@@ -264,8 +284,8 @@ class Player(display_player_attributes):
                             selected_tile = True
                             break
             #stack_stack_tile = self.get_stack_tile(players)
-            tournament_.stack_select = False
-            tournament_.draw_move(hand_tile,stack_tile)
+            game_display.stack_select = False
+            game_display.draw_move(hand_tile, stack_tile)
             for c_player in players:
                 for tile in c_player.stack:
                     if stack_tile == tile:
@@ -276,11 +296,11 @@ class Player(display_player_attributes):
             return "pass"
         else:
             print("Error: Can only pass if no moves are available")
-            tournament_.draw_prompt("Can only pass if no moves are available",2)
-            return self.get_move(players, tournament_)
+            game_display.draw_prompt("Can only pass if no moves are available",2)
+            return self.get_move(players, game_display)
 
-    def get_valid_move(self, players, tournament_):
-        move = self.get_move(players, tournament_)
+    def get_valid_move(self, players, game_display):
+        move = self.get_move(players, game_display)
         if move == "pass":
             return "pass"
         else:
@@ -291,8 +311,8 @@ class Player(display_player_attributes):
                 return [hand_tile, stack, stack_tile]
             else:
                 print("Error: Invalid move")
-                tournament_.draw_prompt("Invalid move",2)
-                return self.get_valid_move(players, tournament_)
+                game_display.draw_prompt("Invalid move", 2)
+                return self.get_valid_move(players, game_display)
     def score_hand(self):
         return sum(self.hand)
 
@@ -342,14 +362,14 @@ class Player(display_player_attributes):
 
 class Computer_Player(Player):
 
-    def get_move(self, players, tournament_):
+    def get_move(self, players, game_display):
         move = self.reccomend_move(players)
         if move != "pass":
             hand_tile = move[0]
             stack_tile = move[2]
-            tournament_.draw_move(hand_tile, stack_tile)
+            game_display.draw_move(hand_tile, stack_tile)
         else:
-            tournament_.draw_prompt("PASS", 0)
+            game_display.draw_prompt("PASS", 0)
         return move
 
     def seralize(self):
@@ -427,19 +447,19 @@ class hand():
             print("Error: Please enter Y or N")
             self.ask_to_save_game()
 
-    def play_hand(self, players, tournament_):
+    def play_hand(self, players, game_display):
         consecutive_passes = 0
         all_empty_hands = all([len(x.hand) == 0 for x in players])
         while consecutive_passes < len(players) and not all_empty_hands:
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
-                tournament_.draw_prompt("Player " + c_player.get_player_id() + "'s turn", 1)
+                game_display.draw_prompt("Player " + c_player.get_player_id() + "'s turn", 1)
                 self.display_hand(c_player)
                 print()
-                tournament_.draw_all_stacks()
-                c_player.draw_hand(tournament_.screen)
+                game_display.draw_all_stacks(players)
+                game_display.draw_hand(c_player.hand)
                 self.display_stacks(players)
-                move = c_player.get_valid_move(players, tournament_)
+                move = c_player.get_valid_move(players, game_display)
                 if move != "pass":
                     hand_tile = move[0]
                     stack_tile = move[2]
@@ -482,7 +502,7 @@ class hand():
             final_scores[c_player.get_player_id()] = score
             c_player.score += score
             print("Player " + c_player.get_player_id() + " scored " + str(score) + " points")
-        tournament_.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
+        game_display.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
         for c_player in players:
             c_player.clear_hand()
 
@@ -515,7 +535,7 @@ class hand():
 
 
 class Round():
-    def play_round(self, players, hand_num, tournament_):
+    def play_round(self, players, hand_num, game_display):
         # CLI
         print("\n\nStarting New Round: ")
         c_hand = hand()
@@ -523,30 +543,30 @@ class Round():
             print("\nHand: 1")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(5)
-            c_hand.play_hand(players, tournament_)
+            c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 2:
             print("\nHand: 2")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(6)
-            c_hand.play_hand(players, tournament_)
+            c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 3:
             print("\nHand: 3")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(6)
-            c_hand.play_hand(players, tournament_)
+            c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 4:
             print("\nHand: 4")
             for c_player in players:
                 c_player.move_from_boneyard_to_hand_n(4)
-            c_hand.play_hand(players, tournament_)
+            c_hand.play_hand(players, game_display)
             hand_num += 1
-        self.score_round(players)
+        self.score_round(players, game_display)
 
 
-    def score_round(self, players_):
+    def score_round(self, players_, game_display):
         print("\n\nRound Over")
         players = players_.copy()
         players = sorted(players, key=lambda x: x.score, reverse=True)
@@ -564,9 +584,9 @@ class Round():
         for c_player in players:
             final_scores[c_player.get_player_id()] = c_player.get_rounds_won()
             print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
-        self.draw_scores(final_scores, "Player ID's", "Rounds Won", "Final Rounds Won")
         print()
         print("Player "+players[0].get_player_id()+" is the current leader")
+        game_display.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
 
 
 
@@ -574,14 +594,15 @@ class Round():
         return players[0]
 
 
-class tournament(game_display):
+class tournament():
     def __init__(self, player_num=4, double_set_length=6):
-        super().__init__()
+        self.game_display = board_display()
         self.double_set_length = double_set_length
         self.player_num = player_num
         self.players = []
         sleep(1)
-        self.start_game_screen()
+        self.game_display.start_game_screen()
+        self.start_new_tournament(self.player_num, self.double_set_length)
 
 
 
@@ -628,8 +649,8 @@ class tournament(game_display):
         round = Round()
         while True:
             self.determine_order()
-            round.play_round(self.players, hand_num=1, tournament_=self)
-            if not self.draw_play_another_round():
+            round.play_round(self.players, hand_num=1, game_display=self.game_display)
+            if not board_display.draw_play_another_round():
                 break
             else:
                 for c_player in self.players:
