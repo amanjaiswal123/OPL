@@ -26,10 +26,14 @@ class Player():
         self.score = 0
         #Represents the number of rounds the player has won
         self.rounds_won = 0
+        self.rounds_won = 0
         #Used to scroll through the player's hand in gui.hand_listener
         self.hand_offset = 0
 
-    #
+    def add_score(self, score):
+        self.score += score
+    def set_color(self, color):
+        self.color = color
     def get_player_id(self):
         return self.playerID
 
@@ -164,9 +168,9 @@ class Player():
         self.generate_boneyard(double_set_length)
         self.hand = []
         self.shuffle_boneyard()
-        self.move_from_boneyard_to_hand_n(6)
+        self.move_from_boneyard_to_hand_n(double_set_length)
         self.stack = []
-        self.move_from_hand_to_stack_n(6)
+        self.move_from_hand_to_stack_n(double_set_length)
         self.score = 0
         self.roundsWon = 0
 
@@ -240,15 +244,15 @@ class Player():
     #*********************************************************************
     def check_valid_move(self, hand_tile, stack_tile):
         valid_move = False
-        if stack_tile.double:
-            if hand_tile.double:
+        if stack_tile.get_double():
+            if hand_tile.get_double():
                 if hand_tile > stack_tile:
                     valid_move = True
             else:
                 if hand_tile >= stack_tile:
                     valid_move = True
         else:
-            if hand_tile.double:
+            if hand_tile.get_double():
                 # If the hand tuple is a double, we can use it
                 valid_move = True
             else:
@@ -281,7 +285,7 @@ class Player():
                 for stack_tile in c_player.stack:
                     if self.check_valid_move(hand_tile, stack_tile):
                         difference = hand_tile - stack_tile
-                        valid_moves.append([hand_tile, c_player.stack, stack_tile, difference])
+                        valid_moves.append([hand_tile, c_player.get_stack(), stack_tile, difference])
         if len(valid_moves) == 0:
             return "pass"
         valid_moves.sort(key=lambda x: x[3])
@@ -401,9 +405,16 @@ class Player():
         game_display.stack_offset = 0
         rec_move = game_display.draw_yes_no_prompt("Would you like a recommended move?")
         if rec_move:
-            rec_hand_tile = reccommened_move[0]
-            rec_stack_tile = reccommened_move[2]
-            game_display.draw_move(players, rec_hand_tile,rec_stack_tile)
+            if reccommened_move != "pass":
+                rec_hand_tile = reccommened_move[0]
+                rec_stack_tile = reccommened_move[2]
+                game_display.draw_move(players, rec_hand_tile,rec_stack_tile)
+                prompt = "The computer recommends this move because it has a difference of " + str(
+                    rec_hand_tile - rec_stack_tile) \
+                         + " Which is the lowest difference after prioritizing opponent tiles"
+                game_display.draw_prompt(prompt)
+            else:
+                game_display.draw_prompt_time_delay("PASS")
         pass_ = game_display.draw_yes_no_prompt("Would you like to pass?")
         if not pass_:
             game_display.hand_select = True
@@ -412,9 +423,9 @@ class Player():
             selected_tile = False
             while not selected_tile:
                 for tile in self.hand:
-                    if tile.selected:
+                    if tile.get_selected():
                         hand_tile = tile
-                        tile.selected = False
+                        tile.set_selected(False)
                         selected_tile = True
                         break
             game_display.hand_select = False
@@ -425,10 +436,10 @@ class Player():
             selected_tile = False
             while not selected_tile:
                 for c_player in players:
-                    for tile in c_player.stack:
-                        if tile.selected:
+                    for tile in c_player.get_stack:
+                        if tile.get_selected():
                             stack_tile = tile
-                            tile.selected = False
+                            tile.set_selected(False)
                             selected_tile = True
                             break
             #stack_stack_tile = self.get_stack_tile(players)
@@ -437,7 +448,7 @@ class Player():
             confirm_move = game_display.draw_move(players, hand_tile, stack_tile)
             game_display.player_move = False
             for c_player in players:
-                for tile in c_player.stack:
+                for tile in c_player.get_stack():
                     if stack_tile == tile:
                         stack = players[players.index(c_player)].stack
                         break
@@ -448,7 +459,7 @@ class Player():
             return "pass"
         else:
             print("Error: Can only pass if no moves are available")
-            game_display.draw_prompt("Can only pass if no moves are available",2)
+            game_display.draw_prompt_time_delay("Can only pass if no moves are available",2)
             return self.get_move(players, game_display)
 
     #*********************************************************************
@@ -481,7 +492,7 @@ class Player():
                 return [hand_tile, stack, stack_tile]
             else:
                 print("Error: Invalid move")
-                game_display.draw_prompt("Invalid move", 2)
+                game_display.draw_prompt_time_delay("Invalid move", 2)
                 return self.get_valid_move(players, game_display)
     def score_hand(self):
         return sum(self.hand)
@@ -506,7 +517,7 @@ class Player():
     def score_stacks(self, players):
         score = 0
         for c_player in players:
-            for stack_tile in c_player.stack:
+            for stack_tile in c_player.get_stack():
                 if stack_tile.player.get_player_id() == self.get_player_id():
                     score += stack_tile
         return score
@@ -566,8 +577,12 @@ class Computer_Player(Player):
         if move != "pass":
             hand_tile = move[0]
             stack_tile = move[2]
+            game_display.draw_move(players, hand_tile, stack_tile)
+            prompt = "The computer picked this move because it has a difference of " + str(hand_tile-stack_tile)\
+                     + " Which is the lowest difference after prioritizing opponent tiles"
+            game_display.draw_prompt(prompt)
         else:
-            game_display.draw_prompt("PASS", 0)
+            game_display.draw_prompt_time_delay("PASS")
         return move
 
 class tile(DisplayTile):
@@ -578,7 +593,12 @@ class tile(DisplayTile):
         self.right = right
         self.player = player
         self.double = self.left == self.right
-
+    def set_selected(self, selected):
+        self.selected = selected
+    def get_selected(self):
+        return self.selected
+    def get_double(self):
+        return self.double
     def __radd__(self, other):
         return self.left + self.right + other
     def __sub__(self, other):
@@ -646,14 +666,15 @@ class hand():
     def play_hand(self, players, game_display):
         consecutive_passes = 0
         all_empty_hands = all([len(x.hand) == 0 for x in players])
+        game_display.gray_screen()
         while consecutive_passes < len(players) and not all_empty_hands:
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
-                game_display.draw_prompt("Player " + c_player.get_player_id() + "'s turn", 1)
+                game_display.draw_prompt_time_delay("Player " + c_player.get_player_id() + "'s turn", 1)
                 self.display_hand(c_player)
                 print()
                 game_display.draw_all_stacks(players)
-                game_display.draw_hand(c_player.hand)
+                game_display.draw_hand(c_player.get_hand())
                 self.display_stacks(players)
                 move = c_player.get_valid_move(players, game_display)
                 if move != "pass":
@@ -661,7 +682,7 @@ class hand():
                     stack_tile = move[2]
                     for c_player_ in players:
                         for tile_ in c_player_.stack:
-                            if str(tile_) ==  str(stack_tile):
+                            if str(tile_) == str(stack_tile):
                                 stack = c_player_.stack
                     print()
                     print("Player " + c_player.get_player_id() + " played tile ", end="")
@@ -669,11 +690,9 @@ class hand():
                     print("to tile ", end="")
                     stack_tile.display_tile()
                     print("in the stacks")
-                    game_display.draw_move(players, hand_tile, stack_tile)
-                    players_copy = copy.deepcopy(players)
                     c_player.move_from_hand_to_stack(hand_tile, stack, stack_tile)
                     game_display.draw_all_stacks(players)
-                    game_display.draw_hand(c_player.hand)
+                    game_display.draw_hand(c_player.get_hand())
                     game_display.wait_for_enter()
                     consecutive_passes = 0
                 else:
@@ -701,7 +720,7 @@ class hand():
         for c_player in players:
             score = stack_scores[c_player.get_player_id()] - hand_scores[c_player.get_player_id()]
             final_scores[c_player.get_player_id()] = score
-            c_player.score += score
+            c_player.add_score(score)
             print("Player " + c_player.get_player_id() + " scored " + str(score) + " points")
         game_display.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
         for c_player in players:
@@ -760,31 +779,31 @@ class Round():
     #6) Score the round using the score_round()
     #Assistance Received: none
     #*********************************************************************
-    def play_round(self, players, hand_num, game_display):
+    def play_round(self, players, hand_num, game_display, double_set_length=6):
         print("\n\nStarting New Round: ")
         c_hand = hand()
         if hand_num == 1:
             print("\nHand: 1")
             for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(5)
+                c_player.move_from_boneyard_to_hand_n(double_set_length-1)
             c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 2:
             print("\nHand: 2")
             for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(6)
+                c_player.move_from_boneyard_to_hand_n(double_set_length)
             c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 3:
             print("\nHand: 3")
             for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(6)
+                c_player.move_from_boneyard_to_hand_n(double_set_length)
             c_hand.play_hand(players, game_display)
             hand_num += 1
         if hand_num == 4:
             print("\nHand: 4")
             for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(4)
+                c_player.move_from_boneyard_to_hand_n(len(c_player.get_hand()))
             c_hand.play_hand(players, game_display)
             hand_num += 1
         self.score_round(players, game_display)
@@ -856,11 +875,11 @@ class tournament():
     #*********************************************************************
     def __init__(self, player_num=4, double_set_length=6):
         self.game_display = board_display()
-        self.double_set_length = double_set_length
-        self.player_num = player_num
         self.players = []
         sleep(1)
         self.game_display.start_game_screen()
+        self.player_num = self.game_display.game_config_screen_players()
+        self.double_set_length = self.game_display.input_number_screen()
         self.start_new_tournament(self.player_num, self.double_set_length)
 
     def load_game(self):
@@ -898,24 +917,24 @@ class tournament():
     #Assistance Received: none
     #*********************************************************************
     def start_new_tournament(self, player_num, double_set_length):
-        for x in range(0, 3):
-            temp_player = Computer_Player()
+        last = Player()
+        for x in range(0, player_num):
             ex_player_colors = [x.get_color() for x in self.players]
             ex_player_ids = [x.get_player_id() for x in self.players]
-            temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
-            print("Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+            if type(last) == Player:
+                temp_player = Computer_Player()
+                temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
+                print("Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+            else:
+                temp_player = Player()
+                temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
+                print("Player Human " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
             self.players.append(temp_player)
-        ex_player_colors = [x.get_color() for x in self.players]
-        ex_player_ids = [x.get_player_id() for x in self.players]
-        temp_player = Player()
-        temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
-        print("Player Human " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
-        self.players.append(temp_player)
-
+            last = temp_player
         round = Round()
         while True:
             self.determine_order()
-            round.play_round(self.players, hand_num=1, game_display=self.game_display)
+            round.play_round(self.players, hand_num=1, game_display=self.game_display, double_set_length=double_set_length)
             if not board_display.draw_play_another_round():
                 break
             else:
@@ -987,7 +1006,7 @@ class tournament():
             self.players.sort(key=lambda x: x.hand[0], reverse=True)
             for comp_player in self.players:
                 for c_player in self.players:
-                    if comp_player.hand[0] == c_player.hand[0] and comp_player != c_player:
+                    if comp_player.get_hand()[0] == c_player.get_hand()[0] and comp_player != c_player:
                         print(
                             "\n\nPlayer " + comp_player.get_player_id() + " and Player " + c_player.get_player_id() + " have equal tiles re-shuffling")
                         equal = True

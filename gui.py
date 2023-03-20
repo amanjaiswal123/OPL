@@ -73,7 +73,7 @@ class board_display():
     def draw_all_stacks(self, players):
         stacks = []
         for c_player in players:
-            for tile in c_player.stack:
+            for tile in c_player.get_stack():
                 stacks.append(tile)
         padding = 10
         tiles_per_row = 3
@@ -104,9 +104,9 @@ class board_display():
             pygame.display.flip()
             i += 1
         for tile in stacks[0:start_index]:
-            tile.rect = None
+            tile.set_rect(None)
         for tile in stacks[end_index:]:
-            tile.rect = None
+            tile.set_rect(None)
 
     def draw_yes_no_prompt(self, prompt:str):
         button_width = 45
@@ -140,6 +140,7 @@ class board_display():
 
         pygame.display.flip()
 
+        self.event_queue.clear()
         check = True
         while check:
             for event in self.event_queue.peek_events():
@@ -162,6 +163,32 @@ class board_display():
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                         return True
+
+    def draw_prompt(self, prompt:str):
+
+        width = self.screen.get_width()
+        height = (self.screen.get_height()-10) / 5
+        prompt_surface = pygame.Surface((width, height))
+        prompt_surface.fill((200, 200, 200))
+        prompt_font = pygame.font.SysFont(None, 12)
+        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
+        prompt_rect = prompt_text.get_rect(center=(width // 2, 40))
+        prompt_surface.blit(prompt_text, prompt_rect)
+
+
+        self.screen.blit(prompt_surface, (0, int(self.screen.get_height()//5*3-5)))
+
+        pygame.display.flip()
+
+        self.event_queue.clear()
+        check = True
+        while check:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return
 
     def draw_play_another_round(self):
         button_width = 80
@@ -194,20 +221,22 @@ class board_display():
         pygame.display.flip()
 
         check = True
+        self.event_queue.clear()
         while check:
             for event in self.event_queue.peek_events():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_n:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if yes_button_rect.collidepoint(event.pos):
                         print('N')
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
-                        return False
-                    if event.key == pygame.K_y:
+                        return True
+                    elif no_button_rect.collidepoint(event.pos):
                         print('Y')
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
-                        return True
-    def draw_prompt(self, prompt:str, display_time=3):
+                        return False
+
+    def draw_prompt_time_delay(self, prompt:str, display_time=3):
 
 
         width = self.screen.get_width()
@@ -225,11 +254,12 @@ class board_display():
         sleep(display_time)
 
     def draw_move(self, players=None, left_tile=None, right_tile="None"):
+
         if players != None and str(right_tile) != "None":
             stack_tile_index = None
             index = 0
             for c_player in players:
-                for c_tile in c_player.stack:
+                for c_tile in c_player.get_stack():
                     if str(c_tile) == str(right_tile):
                         stack_tile_index = index
                         break
@@ -242,10 +272,10 @@ class board_display():
             hand_tile_index = None
             for c_player in players:
                 index = 0
-                for c_tile in c_player.hand:
+                for c_tile in c_player.get_hand():
                     if str(c_tile) == str(left_tile):
                         hand_tile_index = index
-                        player_hand = c_player.hand
+                        player_hand = c_player.get_hand()
                         break
                     index += 1
                 if hand_tile_index != None:
@@ -279,18 +309,19 @@ class board_display():
         y = padding
         screen_x = left_x
         screen_y = y
-        t_rect = left_tile.rect
+        t_rect = left_tile.get_rect()
         left_tile.draw_tile(tiles_surface, tile_width, tile_height, left_x, y, screen_x, screen_y)
-        left_tile.rect = t_rect
+        left_tile.set_rect(t_rect)
         if str(right_tile) != "None":
             right_x = tile_width * 2 + padding * 3
-            t_rect = right_tile.rect
+            t_rect = right_tile.get_rect()
             right_tile.draw_tile(tiles_surface, tile_width, tile_height, right_x, y, screen_x, screen_y)
-            right_tile.rect = t_rect
+            right_tile.set_rect(t_rect)
         self.screen.blit(tiles_surface, (0, int(self.screen.get_height()//5*3-5)))
         pygame.display.flip()
 
         if str(right_tile) is not "None":
+            self.event_queue.clear()
             while True:
                 for event in self.event_queue.peek_events():
                     if event.type == pygame.KEYDOWN:
@@ -306,6 +337,7 @@ class board_display():
                             return False
 
     def wait_for_enter(self):
+        self.event_queue.clear()
         while True:
             for event in self.event_queue.peek_events():
                 if event.type == pygame.KEYDOWN:
@@ -353,6 +385,7 @@ class board_display():
             self.screen.blit(score_surface, score_rect)
 
         pygame.display.flip()
+        self.event_queue.clear()
         while True:
             for event in self.event_queue.peek_events():
                 if event.type == pygame.KEYDOWN:
@@ -381,75 +414,144 @@ class board_display():
 
         pygame.display.flip()
         check = True
+        self.event_queue.clear()
         while check:
             for event in self.event_queue.peek_events():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.start_button_rect.collidepoint(event.pos):
                         check = False
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
-                        width = self.screen.get_width()
-                        height = (self.screen.get_height())
-                        prompt_surface = pygame.Surface((width, height))
-                        prompt_surface.fill((200, 200, 200))
-                        self.screen.blit(prompt_surface, (0, 0))
                         return
-
-
-    def game_config_screen(self):
-        button_width = 45
-        button_height = 45
-
+    def gray_screen(self):
         width = self.screen.get_width()
-        height = (self.screen.get_height()-10) / 5
+        height = (self.screen.get_height())
         prompt_surface = pygame.Surface((width, height))
         prompt_surface.fill((200, 200, 200))
-        prompt_font = pygame.font.SysFont(None, 24)
-        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
-        prompt_rect = prompt_text.get_rect(center=(width // 2, 40))
-        prompt_surface.blit(prompt_text, prompt_rect)
+        self.screen.blit(prompt_surface, (0, 0))
+        pygame.display.flip()
+    def game_config_screen_players(self):
+        button_width = 70
+        button_height = 70
 
-        two_player = pygame.image.load("yes.png").convert_alpha()
-        scaled_two_player_button_image = pygame.transform.scale(two_player, (button_width, button_height))
-        two_player_button_rect = scaled_two_player_button_image.get_rect()
-        two_player_button_rect.topleft = ((self.screen.get_width())/2-35-25, 80)
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        background_image = pygame.image.load("background.jpg").convert()
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        self.screen.blit(scaled_background_image, (0, 0))
 
-        four_player_button_image = pygame.image.load("no.png").convert_alpha()
-        scaled_four_player_button_image = pygame.transform.scale(four_player_button_image, (button_width, button_height))
+        prompt_surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+
+        four_player = pygame.image.load("4.png").convert_alpha()
+        scaled_four_player_button_image = pygame.transform.scale(four_player, (button_width, button_height))
         four_player_button_rect = scaled_four_player_button_image.get_rect()
-        four_player_button_rect.topleft = ((self.screen.get_width())/2-35+25, 80)
+        four_player_button_rect.center = (width // 2 - button_width // 2 - button_width, height // 2)
 
-        prompt_surface.blit(scaled_two_player_button_image, two_player_button_rect)
+        two_player_button_image = pygame.image.load("2.png").convert_alpha()
+        scaled_two_player_button_image = pygame.transform.scale(two_player_button_image, (button_width, button_height))
+        two_player_button_rect = scaled_two_player_button_image.get_rect()
+        two_player_button_rect.center = (width // 2 + button_width // 2 + button_width, height // 2)
+
         prompt_surface.blit(scaled_four_player_button_image, four_player_button_rect)
+        prompt_surface.blit(scaled_two_player_button_image, two_player_button_rect)
 
-        self.screen.blit(prompt_surface, (0, int(self.screen.get_height()//5*3-5)))
+        self.screen.blit(prompt_surface, (0, 0))
 
         pygame.display.flip()
 
         check = True
+        self.event_queue.clear()
         while check:
             for event in self.event_queue.peek_events():
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if two_player_button_rect.collidepoint(event.pos):
-                        print('N')
-                        if event in self.event_queue:
-                            self.event_queue.pop(self.event_queue.index(event))
-                        prompt_surface = pygame.Surface((width, height))
-                        prompt_surface.fill((200, 200, 200))
-                        self.screen.blit(prompt_surface, (0, int(self.screen.get_height() // 5 * 3 - 5)))
-                        pygame.display.flip()
-                        return 4
-                    if event.key == pygame.K_y:
-                        print('Y')
-                        prompt_surface = pygame.Surface((width, height))
-                        prompt_surface.fill((200, 200, 200))
-                        self.screen.blit(prompt_surface, (0, int(self.screen.get_height() // 5 * 3 - 5)))
-                        pygame.display.flip()
+                    if four_player_button_rect.collidepoint(event.pos):
+                        print('Two players selected')
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                         return 2
+                    elif two_player_button_rect.collidepoint(event.pos):
+                        print('Four players selected')
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return 4
+
+    def input_number_screen(self):
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        background_image = pygame.image.load("background.jpg").convert()
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        self.screen.blit(scaled_background_image, (0, 0))
+
+        font = pygame.font.Font(None, 24)
+        input_box = pygame.Rect(width // 2 - 100, height // 2 - 20, 200, 40)
+        color_inactive = pygame.Color('gray')
+        color_active = pygame.Color('black')
+        color = color_inactive
+        active = False
+        text = ''
+        done = False
+        error_message = False
+
+        prompt_text = "What length would you like the double sets?"
+        prompt_surface = font.render(prompt_text, True, pygame.Color('black'))
+        prompt_rect = prompt_surface.get_rect(center=(width // 2, height // 2 - 60))
+
+        self.event_queue.clear()
+
+        while not done:
+            for event in self.event_queue.peek_events():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if input_box.collidepoint(event.pos):
+                        active = not active
+                    else:
+                        active = False
+                    color = color_active if active else color_inactive
+                    if event in self.event_queue:
+                        self.event_queue.pop(self.event_queue.index(event))
+                if event.type == pygame.KEYDOWN and active:
+                    if active:
+                        if event.key == pygame.K_RETURN:
+                            try:
+                                number = int(text)
+                                if number < 5:
+                                    error_surface = font.render("Please enter only numbers greater than 5", True, pygame.Color('red'))
+                                    error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                    error_message = True
+                                else:
+                                    done = True
+                            except ValueError:
+                                text = ''
+                                error_surface = font.render("Please enter only numbers", True, pygame.Color('red'))
+                                error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                error_message = True
+                                done = False
+                        elif event.key == pygame.K_BACKSPACE:
+                            text = text[:-1]
+                            error_message = False
+                        else:
+                            text += event.unicode
+                if event in self.event_queue:
+                    self.event_queue.pop(self.event_queue.index(event))
+
+            self.screen.blit(scaled_background_image, (0, 0))
+            self.screen.blit(prompt_surface, prompt_rect)
+            txt_surface = font.render(text, True, pygame.Color('white'))
+            width_box = max(200, txt_surface.get_width() + 10)
+            input_box.w = width_box
+            pygame.draw.rect(self.screen, color, input_box, 2)
+            pygame.draw.rect(self.screen, pygame.Color('black'), input_box)
+            self.screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+
+            if error_message:
+                self.screen.blit(error_surface, error_rect)
+
+            pygame.display.flip()
+
+        return number
 
     def stack_scroll(self, players):
+        self.event_queue.clear()
+
         while True:
             for event in self.event_queue.peek_events():
                 if event.type == pygame.KEYDOWN:
@@ -469,13 +571,13 @@ class board_display():
                             self.event_queue.pop(self.event_queue.index(event))
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for c_player in players:
-                        for tile in c_player.stack:
-                            if tile.rect != None:
-                                if tile.rect.collidepoint(event.pos):
+                        for tile in c_player.get_stack():
+                            if tile.get_rect() != None:
+                                if tile.get_rect().collidepoint(event.pos):
                                     if self.stack_select:
-                                        for tile_ in c_player.stack:
+                                        for tile_ in c_player.get_stack():
                                             tile_.selected = False
-                                        tile.selected = True
+                                        tile.set_selected(True)
                                         print(tile)
                                         return
                                     if event in self.event_queue:
@@ -511,10 +613,11 @@ class board_display():
         self.screen.blit(tiles_surface, (0, self.screen.get_height() - tiles_surface.get_height()))
         pygame.display.flip()
         for tile in hand[0:start_index]:
-            tile.rect = None
+            tile.set_rect(None)
         for tile in hand[end_index:]:
-            tile.rect = None
+            tile.set_rect(None)
     def hand_listener(self, hand):
+        self.event_queue.clear()
         while True:
             for event in self.event_queue.peek_events():
                 if event.type == pygame.KEYDOWN:
@@ -534,11 +637,11 @@ class board_display():
                             self.event_queue.pop(self.event_queue.index(event))
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for tile in hand:
-                        if tile.rect != None:
-                            if tile.rect.collidepoint(event.pos) and self.hand_select:
+                        if tile.get_rect() != None:
+                            if tile.get_rect().collidepoint(event.pos) and self.hand_select:
                                 for tile_ in hand:
                                     tile_.selected = False
-                                tile.selected = True
+                                tile.set_selected(True)
                                 print(tile)
                                 if event in self.event_queue:
                                     self.event_queue.pop(self.event_queue.index(event))
@@ -549,19 +652,25 @@ class DisplayTile:
         self.rect = None
         self.selected = False
 
+    def get_rect(self):
+        return self.rect
+
+    def set_rect(self, rect):
+        self.rect = rect
+
     def draw_tile(self, screen, width,height, x, y, screen_x, screen_y):
-        if self.player.color == "B":
-            primary_color = (255, 255, 255)
-            alt_color = (0, 0, 0)
-        elif self.player.color == "R":
-            primary_color = (0, 0, 0)
-            alt_color = (255, 96, 96)
-        elif self.player.color == "G":
-            primary_color = (0, 0, 0)
-            alt_color = (96, 255, 95)
-        else:
+        if self.player.get_color() == "B":
             primary_color = (0, 0, 0)
             alt_color = (255, 255, 255)
+        elif self.player.get_color() == "R":
+            primary_color = (255, 96, 96)
+            alt_color = (0, 0, 0)
+        elif self.player.get_color() == "G":
+            primary_color = (96, 255, 95)
+            alt_color = (0, 0, 0)
+        else:
+            primary_color = (255, 255, 255)
+            alt_color = (0, 0, 0)
         TILE_WIDTH = width
         TILE_HEIGHT = height
         font_size = 30
