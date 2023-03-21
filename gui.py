@@ -177,7 +177,27 @@ class board_display():
         self.screen.blit(tiles_surface, (0, 0))
         pygame.display.flip()
 
+    def draw_winner(self, winner):
 
+        # Load the background image
+        background = pygame.image.load("win.jpg")
+        # Get the dimensions of the screen
+        screen_width = self.screen.get_width()
+        screen_height = self.screen.get_height()
+        # Scale the background image to the size of the screen
+        background = pygame.transform.scale(background, (screen_width, screen_height))
+        # Display the background on the screen
+        self.screen.blit(background, (0, 0))
+        # Set the font for the winner text
+        font = pygame.font.SysFont(None, 36)
+        # Render the winner text with a black outline
+        winner_text = font.render(f"Winner: {winner}", True, (255, 255, 255), (0, 0, 0))
+        winner_text_outline = font.render(f"Winner: {winner}", True, (0, 0, 0), (255, 255, 255))
+        # Get the rectangle for the winner text
+        winner_rect = winner_text.get_rect(center=(screen_width // 2, screen_height // 2))
+        # Display the winner text and its outline on the screen
+        self.screen.blit(winner_text, winner_rect)
+        pygame.display.flip()
 
     #*********************************************************************
     #Function Name: draw_yes_no_prompt
@@ -219,7 +239,7 @@ class board_display():
 
 
         #Load and scale the "yes" and "no" button images
-        yes_button_image = pygame.image.load("yes.png").convert_alpha()
+        yes_button_image = pygame.image.load("n.png").convert_alpha()
         #Scale the image
         scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
         #Get the rect for the image
@@ -229,7 +249,7 @@ class board_display():
 
 
         #Load and scale the "no" button image
-        no_button_image = pygame.image.load("no.png").convert_alpha()
+        no_button_image = pygame.image.load("y.png").convert_alpha()
         #Scale the image
         scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
         #Get the rect for the image
@@ -894,8 +914,136 @@ class board_display():
                             self.event_queue.pop(self.event_queue.index(event))
                         return 4
 
-
     #*********************************************************************
+    #Function Name: ask_player_type
+    #Purpose: To display a prompt asking the user to select the type of player they want to create (human or computer)
+    #Parameters: None
+    #Return Value: A string representing the type of player selected by the user ("Human" or "Computer")
+    #Algorithm:
+
+    #1) Set the button width and height
+    #2) Load and display background image
+    #3) Load and display start button image
+    #4) Display "Human" text box
+    #5) Display "Computer" text box
+    #6) Load and display human.png image
+    #7) Load and display computer.png image
+    #8) Display the prompt "Which player type would you like to create?"
+    #9) Wait for the user to press click one of the buttons
+    #10) If the user selects "Human", return "Human". If the user selects "Computer", return "Computer"
+    #Assistance Received: None
+    #*********************************************************************
+
+    def ask_player_type(self):
+        # Set the button width and height
+        button_width = 70
+        button_height = 70
+
+        # Load and display background image
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        # Load and display background image
+        background_image = pygame.image.load("background.jpg").convert()
+        # Scale the background image to fit the screen
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        # Display the background image
+        self.screen.blit(scaled_background_image, (0, 0))
+
+        # Load and display start button image
+        prompt_surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+
+        # Display "Human" text box
+        human_text = pygame.font.Font(None, 20)
+        human_text_surface = human_text.render("Human", True, (255, 255, 255))
+        human_text_rect = human_text_surface.get_rect()
+        human_text_rect.center = (width // 2 - button_width // 2 - button_width, height // 2 + button_height + 20)
+
+        # Display "Computer" text box
+        computer_text = pygame.font.Font(None, 20)
+        computer_text_surface = computer_text.render("Computer", True, (255, 255, 255))
+        computer_text_rect = computer_text_surface.get_rect()
+        computer_text_rect.center = (width // 2 + button_width // 2 + button_width, height // 2 + button_height + 20)
+
+        # Load and display human.png image
+        human_image = pygame.image.load("human.png").convert_alpha()
+        # Scale the human image to fit the screen
+        scaled_human_image = pygame.transform.scale(human_image, (button_width, button_height))
+        # Get the rectangle for the human image
+        human_image_rect = scaled_human_image.get_rect()
+        # Set the center of the human image
+        human_image_rect.center = (width // 2 - button_width // 2 - button_width, height // 2)
+
+        # Load and display computer.png image
+        computer_image = pygame.image.load("robot.png").convert_alpha()
+        # Scale the computer image to fit the screen
+        scaled_computer_image = pygame.transform.scale(computer_image, (button_width, button_height))
+        # Get the rectangle for the computer image
+        computer_image_rect = scaled_computer_image.get_rect()
+        # Set the center of the computer image
+        computer_image_rect.center = (width // 2 + button_width // 2 + button_width, height // 2)
+
+
+        #Create the surfaces for the computer and human text boxes
+        human_text_background = pygame.Surface((human_text_rect.width, human_text_rect.height))
+        #Fill the background of the surfaces with black
+        human_text_background.fill((0, 0, 0))
+        #Create the surfaces for the computer text boxe
+        computer_text_background = pygame.Surface((computer_text_rect.width, computer_text_rect.height))
+        #Fill the background of the surfaces with black
+        computer_text_background.fill((0, 0, 0))
+        #Render the text and backgrounds
+        prompt_surface.blit(human_text_background, human_text_rect)
+        prompt_surface.blit(human_text_surface, human_text_rect)
+        prompt_surface.blit(computer_text_background, computer_text_rect)
+        prompt_surface.blit(computer_text_surface, computer_text_rect)
+        prompt_surface.blit(scaled_human_image, human_image_rect)
+        prompt_surface.blit(scaled_computer_image, computer_image_rect)
+
+        # render the prompt "Which player type would you like to create?"
+        prompt_text = pygame.font.Font(None, 20)
+        prompt_text_surface = prompt_text.render("Which player type would you like to create?", True, (255, 255, 255))
+        prompt_text_rect = prompt_text_surface.get_rect()
+        prompt_text_rect.center = (width // 2, height // 2 - button_height - 40)
+
+        # Create a black surface for the background of the text
+        black_surface = pygame.Surface((prompt_text_rect.width, prompt_text_rect.height))
+        black_surface.fill((0, 0, 0))
+
+        # Render the black surface and text surface onto the prompt surface
+        prompt_surface.blit(black_surface, prompt_text_rect)
+        prompt_surface.blit(prompt_text_surface, prompt_text_rect)
+
+        # Display the all the surfaces
+        self.screen.blit(prompt_surface, (0, 0))
+
+        # Update the display
+        pygame.display.flip()
+
+        # Clear the event queue so we don't get any events from before the prompt is displayed
+        self.event_queue.clear()
+        # Wait for the user to press click one of the buttons
+        while True:
+            # Iterate through the events in the event queue
+            for event in self.event_queue.peek_events():
+                # If the event is a keydown event
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # If the key is the enter key
+                    if human_text_rect.collidepoint(event.pos) or human_image_rect.collidepoint(event.pos):
+                        print("Human selected")
+                        # Remove the event from the event queue so it doesn't get processed again
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return "Human"
+
+                    # If the key is the enter key
+                    elif computer_text_rect.collidepoint(event.pos) or computer_image_rect.collidepoint(event.pos):
+                        print("Computer selected")
+                        # Remove the event from the event queue so it doesn't get processed again
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return "Computer"
+
+        #*********************************************************************
     #Function Name: input_number_screen
     #Purpose: To allow the user to input the number of sets to be played in the game
     #Parameters: None
@@ -1078,10 +1226,10 @@ class board_display():
                                             tile_.selected = False
                                         tile.set_selected(True)
                                         print(tile)
-                                    #Remove the event from the event queue so it doesn't get processed again
+                                        return
+                                        #Remove the event from the event queue so it doesn't get processed again
                                     if event in self.event_queue:
                                         self.event_queue.pop(self.event_queue.index(event))
-                                    return
     #*********************************************************************
     #Function Name: draw_hand
     #Purpose: To draw the hand of tiles in a given screen
