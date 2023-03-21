@@ -70,6 +70,17 @@ class board_display():
         self.screen.fill((0, 0, 0))
         pygame.display.flip()
 
+    def set_stack_offset(self, n):
+        self.stack_offset = n
+
+    def set_hand_select(self, n):
+        self.hand_select = n
+
+    def set_stack_select(self, n):
+        self.stack_select = n
+
+    def set_player_move(self, n):
+        self.player_move = n
     def draw_all_stacks(self, players):
         stacks = []
         for c_player in players:

@@ -30,6 +30,11 @@ class Player():
         #Used to scroll through the player's hand in gui.hand_listener
         self.hand_offset = 0
 
+    def set_stack(self, stack):
+        self.stack = stack
+
+    def add_round(self):
+        self.rounds_won += 1
     def add_score(self, score):
         self.score += score
     def set_color(self, color):
@@ -83,61 +88,12 @@ class Player():
     def move_from_hand_to_stack_n(self, n):
         for x in range(0, n):
             self.stack.append(self.hand.pop(0))
-    #*********************************************************************
-    #Function Name: assign_player_id
-    #Purpose: To assign a unique ID to a player for a game
-    #Parameters:
-
-    #self, a reference to the current instance of the class
-    #ex_player_ids, a list passed by value. It holds IDs of existing players
-    #Return Value: None
-    #Algorithm:
-
-    #1) Prompt the user to enter a player name (This line is commented out and should be changed before demo)
-    #2) Set the user input to a string representing the length of the ex_player_ids list plus 1
-    #3) If the user input is in ex_player_ids, print an error message and call assign_player_color recursively
-    #4) Otherwise, set the playerID attribute of self to the user input
-    #Assistance Received: none
-    #*********************************************************************
     def assign_player_id(self, ex_player_ids):
-        # user_input = input("Please enter a player name?")
-        # CHANGE BEFORE DEMO
-        user_input = str(len(ex_player_ids) + 1)
-        if user_input in ex_player_ids:
-            print("Sorry that id has already been taken please choose another")
-            self.assign_player_color(ex_player_ids)
-        else:
-            self.playerID = user_input
-#*********************************************************************
-#Function Name: assign_player_color
-#Purpose: To assign a unique color to a player for a game
-#Parameters:
+        self.playerID = str(len(ex_player_ids) + 1)
 
-#self, a reference to the current instance of the class
-#ex_player_colors, a list passed by value. It holds colors of existing players
-#Return Value: None
-#Algorithm:
-
-#1) Create a list of valid colors ["B", "W", "R", "G", "b", "w", "r", "g"]
-#2) Set the user input to a random color from the valid_colors list (This line is commented out and should be changed before demo)
-#3) If the user input is not in valid_colors, print an error message and call assign_player_color recursively
-#4) If the user input (uppercased) is in ex_player_colors, print an error message and call assign_player_color recursively
-#5) Otherwise, set the color attribute of self to the user input (uppercased)
-#Assistance Received: none
-#*********************************************************************
     def assign_player_color(self, ex_player_colors):
-        #     user_input = input("Please enter a player color(B/W/R/G)?")
-        valid_colors = ["B", "W", "R", "G", "b", "w", "r", "g"]
-        # CHANGE BEFORE DEMO
-        user_input = valid_colors[randint(0, 3)]
-        if user_input not in valid_colors:
-            print("Please enter a either B, W, R, or G")
-            self.assign_player_color()
-        elif user_input.upper() in ex_player_colors:
-            print("Sorry that color has already been taken please choose another")
-            self.assign_player_color(ex_player_colors)
-        else:
-            self.color = user_input.upper()
+        valid_colors = ["W", "B", "R", "G"]
+        self.color = valid_colors[len(ex_player_colors)]
     #*********************************************************************
     #Function Name: create_new_player
     #Purpose: To create a new player with a unique ID, color, and initial game setup
@@ -163,15 +119,25 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def create_new_player(self, ex_player_ids, ex_player_colors, double_set_length):
+        #Assign a unique player ID
         self.assign_player_id(ex_player_ids)
+        #Assign a unique player color
         self.assign_player_color(ex_player_colors)
+        #Generate a boneyard of size double_set_length
         self.generate_boneyard(double_set_length)
+        #Initialize the player's hand to an empty list
         self.hand = []
+        #Shuffle the boneyard
         self.shuffle_boneyard()
+        #Move the double set length amount of tiles from the boneyard to the player's hand
         self.move_from_boneyard_to_hand_n(double_set_length)
+        #Initialize the player's stack to an empty list
         self.stack = []
+        #Move the double set length amount of tiles from the player's hand to the player's stack
         self.move_from_hand_to_stack_n(double_set_length)
+        #Set the player's score to 0
         self.score = 0
+        #Set the player's rounds won to 0
         self.roundsWon = 0
 
     def shuffle_boneyard(self):
@@ -213,13 +179,18 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def move_from_hand_to_stack(self, hand_tile, stack, stack_tile):
+        #Print the hand tile, stack tile, and the stack
         print("\nHAND TILE:" + str(hand_tile))
         print("\nSTACK TILE"+ str(stack_tile))
         print("\nSTACK:")
+        #Print the stack
         for x in stack:
             print(x)
+        #Find the index of the hand tile in the hand
         tile_index = self.hand.index(hand_tile)
+        #Replace the stack tile in the stack with the hand tile
         stack[stack.index(stack_tile)] = self.hand.pop(tile_index)
+        #Print the stack and hand after the move
         print("\nMOD STACK:")
         for x in stack:
             print(x)
@@ -243,21 +214,27 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def check_valid_move(self, hand_tile, stack_tile):
+        #By defualt valid_move is false until proven otherwise by the if statements below
         valid_move = False
         if stack_tile.get_double():
             if hand_tile.get_double():
                 if hand_tile > stack_tile:
+                    #If the hand tile is a double and the stack tile is a double,
+                    #we can use it if the hand tuple is greater than the stack tuple
                     valid_move = True
             else:
                 if hand_tile >= stack_tile:
+                    #If the hand tile is not a double and the stack tile is a double, the hand tile must be greater
+                    # than or equal to the stack tile
                     valid_move = True
         else:
             if hand_tile.get_double():
-                # If the hand tuple is a double, we can use it
+                #If the hand tile is a double and the stack tile is not a double, the move is valid no matter what
                 valid_move = True
             else:
-                # If the hand tuple is not a double and the stack tuple is not a double, we can use it
                 if hand_tile >= stack_tile:
+                    #If the hand tile is not a double and the stack tile is not a double, the hand tile must be greater
+                    # than or equal to the stack tile
                     valid_move = True
         return valid_move
 
@@ -271,7 +248,7 @@ class Player():
     #Return Value: The best move for the current player, represented as a list containing hand_tile, stack, stack_tile, and difference
     #Algorithm:
 
-    #1) For each tile in self.hand, iterate over each player and their stack and check if the move is valid
+    #1) For each tile in the players hand, iterate over each player and their stack and check if the move is valid
     #2) If the move is valid, calculate the difference between hand_tile and stack_tile and append the move to a list of valid moves
     #3) Sort the list of valid moves by difference in ascending order
     #4) Check the player ID of the stack_tile. If it is not the current player, recommend the move with the lowest difference
@@ -280,23 +257,33 @@ class Player():
     #*********************************************************************
     def reccomend_move(self, players):
         valid_moves = []
+        #Get all the possible moves by iterating over the hand and stack using the check_valid_move function
+        #Iterate over the player's hand
         for hand_tile in self.hand:
             for c_player in players:
+                #Iterate over the stack of each player
                 for stack_tile in c_player.stack:
                     if self.check_valid_move(hand_tile, stack_tile):
+                        #If the move is valid, calculate the difference between the hand tile and the stack tile
                         difference = hand_tile - stack_tile
+                        #Append the move to the list of valid moves
                         valid_moves.append([hand_tile, c_player.get_stack(), stack_tile, difference])
+        #If there are no valid moves, return "pass"
         if len(valid_moves) == 0:
             return "pass"
+        #Sort the list of valid moves by difference in ascending order
         valid_moves.sort(key=lambda x: x[3])
+        #By default the best move is the first move in the list as that is the lowest diffrence move
         best_move = valid_moves[0]
+        #We iterate through the moves and check if their stack tile is on a opponents stack, which would be preferred
         for move in valid_moves:
             stack_tile = move[2]
             stack_tile_player_id = stack_tile.player.get_player_id()
+            #Once the first match is found, we break out of the loop and return the move
             if stack_tile_player_id != self.playerID:
                 best_move = move
                 break
-
+        #Print the best move
         print("\nThe Best Move is " + str(best_move[0]) + " on " + str(best_move[2]) + " because it has a difference of " + str(best_move[3]) + " which is the lowest difference move on a opponents stack.")
         return best_move
 
@@ -341,6 +328,7 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def display_rec_move(self, reccommened_move):
+        #Display the recommended move
         print("Reccomended Move: ")
         hand_tile = reccommened_move[0]
         stack_tile = reccommened_move[2]
@@ -389,7 +377,8 @@ class Player():
     #Algorithm:
 
     #1) Start threads to listen for scrolling on the stacks and the player's hand.
-    #2) Use the reccomend_move function to generate a recommended move.
+    #2) Use the reccomend_move function to generate a recommended move.(We need it regardless of whether the player
+    # wants to use it or not to check if the player can pass)
     #3) Ask the player if they want to use the recommended move.
     #4) Ask the player if they want to pass.
     #5) If the player does not want to pass, wait for them to select a tile from their hand and then a tile from a stack.
@@ -397,66 +386,116 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def get_move(self, players, game_display):
+        #Start threads to listen for scrolling on the stacks
         stack_scroll_thread = Thread(target=game_display.stack_scroll, args=[players])
         stack_scroll_thread.start()
+        #Start a thread to listen for scrolling on the player's hand
         hand_scroll_thread = Thread(target=game_display.hand_listener, args=[self.hand])
         hand_scroll_thread.start()
+        #Get the recommended move
         reccommened_move = self.reccomend_move(players)
-        game_display.stack_offset = 0
+        #Reset the stack offset to 0 so the player starts from the same place every time
+        game_display.set_stack_offset(0)
+        #Ask the player if they want to use the recommended move
         rec_move = game_display.draw_yes_no_prompt("Would you like a recommended move?")
+        #If the player wants to use the recommended move, display it
         if rec_move:
+            #If not pass display normally, else display pass
             if reccommened_move != "pass":
                 rec_hand_tile = reccommened_move[0]
                 rec_stack_tile = reccommened_move[2]
+                #Draw the recommended move
                 game_display.draw_move(players, rec_hand_tile,rec_stack_tile)
+                #Show the reason the computer chose this move
                 prompt = "The computer recommends this move because it has a difference of " + str(
                     rec_hand_tile - rec_stack_tile) \
                          + " Which is the lowest difference after prioritizing opponent tiles"
                 game_display.draw_prompt(prompt)
             else:
+                #Display Pass
                 game_display.draw_prompt_time_delay("PASS")
+        #Ask the player if they want to pass
         pass_ = game_display.draw_yes_no_prompt("Would you like to pass?")
+        #If the player does not want to pass, get the tiles they want to play,
         if not pass_:
-            game_display.hand_select = True
-            #hand_tile = self.get_hand_tile()
+            game_display.set_hand_select(True)
             print("Please enter a tile from your hand: ")
+
+
+            #Wait for the player to select a tile from their hand, we iterate through the hand and the hand_listener will
+            #set the selected attribute to true if the player selects a tile
+
+            #By default, the selected tile is false, until a tile is selected. When it is stop the loop
             selected_tile = False
             while not selected_tile:
+                #Iterate through the player's hand
                 for tile in self.hand:
+                    #If the tile is selected, set the hand_tile to that tile and break out of the loop
                     if tile.get_selected():
+                        #Set the hand tile to the selected tile
                         hand_tile = tile
+                        #Reset the selected attribute to false to make sure it isn't selected next turn.
                         tile.set_selected(False)
+                        #Set selected tile to true to stop the while loop
                         selected_tile = True
+                        #Break out of the for loop
                         break
+            #Set the hand_select attribute to false you cannot select a tile from the hand.
             game_display.hand_select = False
+            #Draw the first selected tile
             game_display.draw_move(left_tile=hand_tile)
-            game_display.stack_select = True
+            # Wait 1 second delay to avoid the player selecting a tile from the hand and a tile from the stack at the
+            # same time
             sleep(1)
+            # Set the stack_select attribute to true so the player can select a tile from a stack
+            game_display.stack_select = True
+
+            #Wait for the player to select a tile from a stack, we iterate through the stacks and the stack_listener will
+            #set the selected attribute to true if the player selects a tile
             print("Please enter a tile from your stack: ")
+            #By default, the selected tile is false, until a tile is selected. When it is stop the loop
             selected_tile = False
             while not selected_tile:
+                #Iterate through the player's so we can access the stacks
                 for c_player in players:
-                    for tile in c_player.get_stack:
+                    #Iterate through the stacks
+                    for tile in c_player.get_stack():
+                        #If the tile is selected, set the stack_tile to that tile and break out of the loop
                         if tile.get_selected():
                             stack_tile = tile
+                            #Reset the selected attribute to false to make sure it isn't selected next turn.
                             tile.set_selected(False)
+                            #Set selected tile to true to stop the while loop
                             selected_tile = True
+                            #Break out of the for loop
                             break
-            #stack_stack_tile = self.get_stack_tile(players)
-            game_display.stack_select = False
-            game_display.player_move = True
+            #Set the stack_select attribute to false you cannot select a tile from the stack.
+            game_display.set_stack_select(False)
+            #Set the player_move attribute to true so the player can confirm or cancel their move
+            game_display.set_player_move(True)
             confirm_move = game_display.draw_move(players, hand_tile, stack_tile)
-            game_display.player_move = False
+            #Set the player_move attribute to false as confirmation on computer players turn is not needed
+            game_display.set_player_move(False)
+            #Get the stack of the tile the player selected
+            #Iterate through the players
             for c_player in players:
-                for tile in c_player.get_stack():
-                    if stack_tile == tile:
-                        stack = players[players.index(c_player)].stack
+                #Iterate through the stacks
+                for c_tile in c_player.get_stack():
+                    #If the tile is the same as the tile the player selected, set the stack to that stack
+                    if str(stack_tile) == str(c_tile):
+                        #Set the stack to the stack of the tile the player selected
+                        stack = players[players.index(c_player)].get_stack()
                         break
+            #If the player cancels their move, recursively call the function to get a new move
             if not confirm_move:
                 return self.get_move(players, game_display)
+            #If the player confirms their move, return the move
             return [hand_tile, stack, stack_tile]
+        #If the player wants to pass, return pass
         elif pass_ and reccommened_move == "pass":
             return "pass"
+        #If the player wants to pass but there is a possible move, display an error message and
+        #recursively call the function until a valid move is given from the player
         else:
             print("Error: Can only pass if no moves are available")
             game_display.draw_prompt_time_delay("Can only pass if no moves are available",2)
@@ -481,15 +520,22 @@ class Player():
     #Assistance Received: none
     #*********************************************************************
     def get_valid_move(self, players, game_display):
+        #Get the move from the player
         move = self.get_move(players, game_display)
+        #If the player passes, return pass
         if move == "pass":
             return "pass"
+        #Otherwise, extract the hand tile, stack, and stack tile from the move and check if the move is valid
         else:
+            #Extract the hand tile, stack, and stack tile from the move
             hand_tile = move[0]
             stack = move[1]
             stack_tile = move[2]
+            #Check if the move is valid, if it is, return the move
             if self.check_valid_move(hand_tile, stack_tile):
                 return [hand_tile, stack, stack_tile]
+            #If the move is not valid, display an error message and call get_valid_move() recursively until a valid
+            #move is made
             else:
                 print("Error: Invalid move")
                 game_display.draw_prompt_time_delay("Invalid move", 2)
@@ -572,26 +618,37 @@ class Computer_Player(Player):
     #5) Return the move recommendation.
     #Assistance Received: none
     #*********************************************************************
+
+    #Overriding the get_move function from the Player class to simply use the rec-move to get a move
     def get_move(self, players, game_display):
+        #Get a move from the recommend move function
         move = self.reccomend_move(players)
+        #If the move is not "pass", get the hand tile and stack tile from the move.
         if move != "pass":
             hand_tile = move[0]
             stack_tile = move[2]
+            #Draw the move on the game board using the game_display object.
             game_display.draw_move(players, hand_tile, stack_tile)
+            #Display the move reasoning on the game board
             prompt = "The computer picked this move because it has a difference of " + str(hand_tile-stack_tile)\
                      + " Which is the lowest difference after prioritizing opponent tiles"
             game_display.draw_prompt(prompt)
-        else:
-            game_display.draw_prompt_time_delay("PASS")
+        #If the move is pass, display "PASS" on the game board.
+        #Return the move recommendation.
         return move
 
 class tile(DisplayTile):
-
+    #The tile class stores the value of the left and right side of a tile aswell as overriding some basic operators
+    #to make it easier to work with. It takes in Display Tile which adds attributes and methods to the tile class to
+    #make it easier to display it on the game board.
     def __init__(self, left, right, player: Player):
         super().__init__()
+        #The left and right attributes store the value of the left and right side of the tile
         self.left = left
         self.right = right
+        #The player attribute stores the player object that owns the tile, useful for scoring
         self.player = player
+        #If both sides of the tile are the same, the tile is a double
         self.double = self.left == self.right
     def set_selected(self, selected):
         self.selected = selected
@@ -634,52 +691,63 @@ class tile(DisplayTile):
 
 class hand():
 
-#*********************************************************************
-#Function Name: play_hand
-#Purpose: To play a single hand of the game
-#Parameters:
+    #*********************************************************************
+    #Function Name: play_hand
+    #Purpose: To play a single hand of the game
+    #Parameters:
 
-#self, a reference to the current object
-#players, a list of player objects, passed by reference. It holds the players in the current game
-#game_display, a GameDisplay object, passed by reference. It holds the GUI object to display the game.
-#Return Value: None
-#Algorithm:
+    #self, a reference to the current object
+    #players, a list of player objects, passed by reference. It holds the players in the current game
+    #game_display, a GameDisplay object, passed by reference. It holds the GUI object to display the game.
+    #Return Value: None
+    #Algorithm:
 
-#1) Initialize consecutive_passes to 0 and all_empty_hands to False
-#2) While consecutive_passes is less than the number of players and not all hands are empty
-    #a) For each player in players:
-        #i) Display player's turn
-        #ii) Display player's hand and stacks of all players
-        #iii) Get a valid move from the player
-        #iv) If the move is not "pass":
-            #1) Get hand_tile and stack_tile from move
-            #2) Find the stack corresponding to stack_tile
-            #3) Display the tile that was played
-            #4) Move the tile from hand to the corresponding stack
-            #5) Reset consecutive_passes to 0
-        #v) Else:
-            #1) Display that the player passed
-            #2) Increment consecutive_passes
-            #3) Display the final hands, stacks and scores of the players
-#Assistance Received: None
-#*********************************************************************
+    #1) Initialize consecutive_passes to 0 and all_empty_hands to False
+    #2) While consecutive_passes is less than the number of players and not all hands are empty
+        #a) For each player in players:
+            #i) Display player's turn
+            #ii) Display player's hand and stacks of all players
+            #iii) Get a valid move from the player
+            #iv) If the move is not "pass":
+                #1) Get hand_tile and stack_tile from move
+                #2) Find the stack corresponding to stack_tile
+                #3) Display the tile that was played
+                #4) Move the tile from hand to the corresponding stack
+                #5) Reset consecutive_passes to 0
+            #v) Else:
+                #1) Display that the player passed
+                #2) Increment consecutive_passes
+                #3) Display the final hands, stacks and scores of the players
+    #Assistance Received: None
+    #*********************************************************************
     def play_hand(self, players, game_display):
+        #Initialize consecutive_passes to 0 and all_empty_hands
         consecutive_passes = 0
+        #Iterates through the players to see if all hands are empty
         all_empty_hands = all([len(x.hand) == 0 for x in players])
+        #Set the color of the screen to gray, which is the main color of the game board
         game_display.gray_screen()
+        #While all the players have not passed and all the hands are not empty
         while consecutive_passes < len(players) and not all_empty_hands:
+            #Iterate through the players
             for c_player in players:
                 print("\nPlayer " + c_player.get_player_id() + "'s turn\n")
+                #Display Which Player's turn it is
                 game_display.draw_prompt_time_delay("Player " + c_player.get_player_id() + "'s turn", 1)
                 self.display_hand(c_player)
                 print()
                 game_display.draw_all_stacks(players)
+                #Display the hand of the player
                 game_display.draw_hand(c_player.get_hand())
+                #Display the stacks of all the players
                 self.display_stacks(players)
+                #Get a valid move from the player
                 move = c_player.get_valid_move(players, game_display)
+                #If the move is not "pass", place the tile
                 if move != "pass":
                     hand_tile = move[0]
                     stack_tile = move[2]
+                    #Find the stack corresponding to stack_tile
                     for c_player_ in players:
                         for tile_ in c_player_.stack:
                             if str(tile_) == str(stack_tile):
@@ -690,39 +758,57 @@ class hand():
                     print("to tile ", end="")
                     stack_tile.display_tile()
                     print("in the stacks")
+                    #Move the tile from hand to the corresponding stack
                     c_player.move_from_hand_to_stack(hand_tile, stack, stack_tile)
+                    #Draw the stacks again to show the move
                     game_display.draw_all_stacks(players)
+                    #Draw the hand again to show the move
                     game_display.draw_hand(c_player.get_hand())
+                    #Wait for the user to press enter
                     game_display.wait_for_enter()
+                    #Reset consecutive_passes to 0
                     consecutive_passes = 0
                 else:
                     print()
                     print("Player " + c_player.get_player_id() + " passed")
+                    #Display Pass on the screen
+                    game_display.draw_prompt_time_delay("PASS")
+                    #Increment consecutive_passes
                     consecutive_passes += 1
-              #  if self.ask_to_save_game():
-              #      c_player_pos = players.index(c_player)
-               #     if c_player_pos != (len(players) - 1):
-               #         next_player = players[c_player_pos + 1]
-               #     else:
-               #         next_player = players[0]
-                #    tournament_.save_game(next_player)
+                    #If consecutive_passes is equal to the number of players, break out of the for loop and the
+                    # while loop since all the players have passed
+                    if consecutive_passes > len(players):
+                        break
+            #Check if all hands are empty
             all_empty_hands = all([len(x.hand) == 0 for x in players])
+
+
         print("\n\nHand Over")
         print("Final Hands")
         for c_player in players:
             self.display_hand(c_player)
         print("Final Stacks")
         self.display_stacks(players)
+        #Score the hand
         print("Scoring Hands:")
+        #Get the scores for the hand
         hand_scores = self.score_hand(players)
+        #Get the scores for the stacks
         stack_scores = self.score_stacks(players)
+        #Create a dictionary to hold the final scores of the players
         final_scores = {}
+        #Iterate through the players and add the scores to the final_scores dictionary
         for c_player in players:
+            #The final score is the stack score minus the hand score,
             score = stack_scores[c_player.get_player_id()] - hand_scores[c_player.get_player_id()]
+            #set the player id as the key and the score as the value
             final_scores[c_player.get_player_id()] = score
+            #Add the score to the player's total score
             c_player.add_score(score)
             print("Player " + c_player.get_player_id() + " scored " + str(score) + " points")
+        #Display the final scores to the screen
         game_display.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
+        #Discard the tiles remaining in the hands for all the players
         for c_player in players:
             c_player.clear_hand()
 
@@ -745,10 +831,6 @@ class hand():
     def display_hand(self, player):
         print("Player " + player.get_player_id() + "'s hand", end=": ")
         player.display_hand()
-
-
-
-
 
 
 class Round():
@@ -781,7 +863,10 @@ class Round():
     #*********************************************************************
     def play_round(self, players, hand_num, game_display, double_set_length=6):
         print("\n\nStarting New Round: ")
+        #Initialize a new hand object
         c_hand = hand()
+        #Check which hand_num it is and play the hand with the according number of tiles dealt
+        #Then increment hand_num so that the next if statement is hit and the next hand is played
         if hand_num == 1:
             print("\nHand: 1")
             for c_player in players:
@@ -806,6 +891,7 @@ class Round():
                 c_player.move_from_boneyard_to_hand_n(len(c_player.get_hand()))
             c_hand.play_hand(players, game_display)
             hand_num += 1
+        #Score the round
         self.score_round(players, game_display)
 
     #*********************************************************************
@@ -830,7 +916,10 @@ class Round():
     #*********************************************************************
     def score_round(self, players_, game_display):
         print("\n\nRound Over")
+        #Make a copy of the players list and sort it based on each player's score in descending order without
+        #changing the original list as the order in the orginal list is the order of the players in the game.
         players = players_.copy()
+        #Sort the players list based on the points scored in descending order
         players = sorted(players, key=lambda x: x.score, reverse=True)
         print()
         print("Final Scores:")
@@ -838,7 +927,9 @@ class Round():
             print("Player " + c_player.get_player_id() + " scored " + str(c_player.get_score()) + " points")
         print()
         print("Player "+players[0].get_player_id()+" wins the round")
-        players_[players_.index(players[0])].rounds_won += 1
+        #Increment the number of rounds won for the winning player and update the players_ list with the change.
+        players_[players_.index(players[0])].add_rounds_won()
+        #Sort the players list based on the number of rounds won in descending order
         players = sorted(players, key=lambda x: x.rounds_won, reverse=True)
         print()
         print("Final Rankings: ")
@@ -848,12 +939,8 @@ class Round():
             print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
         print()
         print("Player "+players[0].get_player_id()+" is the current leader")
+        #Display the current leader and the scores of each player on the game display.
         game_display.draw_scores(final_scores, "Player ID's", "Scores", "Scores")
-
-
-
-    def get_winner(self, players):
-        return players[0]
 
 
 class tournament():
@@ -873,30 +960,23 @@ class tournament():
     #4) Call the start_new_tournament method with the given parameters after start has been pressed.
     #Assistance Received: none
     #*********************************************************************
-    def __init__(self, player_num=4, double_set_length=6):
+    def __init__(self):
+        #Create a new board_display object
         self.game_display = board_display()
+        #The player list will hold all the players, the order of the players in the list will be the order of the
+        #players in the game.
         self.players = []
+        #Wait 1 second for the screen to intialize
         sleep(1)
+        #Show the start game_screen
         self.game_display.start_game_screen()
+        #Get the amount of players
         self.player_num = self.game_display.game_config_screen_players()
+        #Get the double set length
         self.double_set_length = self.game_display.input_number_screen()
+        #Start the tournament
         self.start_new_tournament(self.player_num, self.double_set_length)
 
-    def load_game(self):
-        pass
-
-    def is_path_available(self, path):
-        if not os.path.exists(path):
-            return True
-        else:
-            return False
-
-    def get_filename(self):
-        filename = input("Please enter a filename: ")+".txt"
-        if not self.is_path_available(filename):
-            print("Filename already exists")
-            return self.get_filename()
-        return filename
     #*********************************************************************
     #Function Name: start_new_tournament
     #Purpose: To start a new tournament, create players and initiate the game rounds.
@@ -917,29 +997,52 @@ class tournament():
     #Assistance Received: none
     #*********************************************************************
     def start_new_tournament(self, player_num, double_set_length):
+        #Create the correct amount of computer and human players
+        #The loop alternates between creating a computer player and a human player so an even number of
+        # human and computer players are always created. The first player is always a human player.
         last = Player()
+        #Loop for the specified number of players
         for x in range(0, player_num):
+            #Create a list of existing player colors
             ex_player_colors = [x.get_color() for x in self.players]
+            #Create a list of existing player ids
             ex_player_ids = [x.get_player_id() for x in self.players]
+            #If the last player created was a human player, create a computer player
             if type(last) == Player:
+                #Create a new computer player
                 temp_player = Computer_Player()
+                #Create a new player
                 temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
-                print("Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+                print("Computer Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+            #If the last player created was a computer player, create a human player
             else:
+                #Create a new human player object
                 temp_player = Player()
+                #Load in necessary data
                 temp_player.create_new_player(ex_player_ids, ex_player_colors, double_set_length)
-                print("Player Human " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+                print("Human Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
+            #Add the player to the list of players
             self.players.append(temp_player)
+            #Set the last player created to the current player so it alternates next iteration
             last = temp_player
+        #Create a new round object
         round = Round()
+        #Loop until the player does not want to play any more rounds
         while True:
+            #Determine the order of the players
             self.determine_order()
+            #Play the round
             round.play_round(self.players, hand_num=1, game_display=self.game_display, double_set_length=double_set_length)
+            #Check if the players want to play another round
+            #If not, end the game by breaking the loop
             if not board_display.draw_play_another_round():
+                #If not, end the game by breaking the loop
                 break
+            #If the players want to play another round, reset the game and start a new round
             else:
                 for c_player in self.players:
                     c_player.reset_player(double_set_length)
+        #End the game and declare the winner
         self.get_winner()
         print("\nGoodbye! Thanks for playing!")
 
@@ -958,7 +1061,9 @@ class tournament():
     #Assistance Received: none
     #*********************************************************************
     def get_winner(self):
+        #Make a copy of the list of players so the original list is not modified
         players = self.players.copy()
+        #Sort the list in descending order based on the number of rounds won by each player
         players = sorted(players, key=lambda x: x.rounds_won, reverse=True)
         print()
         print("Final Rankings: ")
@@ -985,12 +1090,15 @@ class tournament():
     #Assistance Received: None
     #*********************************************************************
     def determine_order(self):
+        #Keep re-shuffling until no equal tiles are found
+        #Set equal to true so the loop runs at least once
         equal = True
         while equal:
+            #Set equal to false so the loop will only run again if there are ties
             equal = False
-            # CLI
             print("\nDetermining Order:")
             for c_player in self.players:
+                #
                 print("Player " + c_player.get_player_id() + " boneyard")
                 c_player.display_boneyard()
                 print("Shuffling Boneyard...")
