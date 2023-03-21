@@ -1097,33 +1097,48 @@ class tournament():
             #Set equal to false so the loop will only run again if there are ties
             equal = False
             print("\nDetermining Order:")
+            #Iterate through each player and add a tile to their hand
             for c_player in self.players:
-                #
                 print("Player " + c_player.get_player_id() + " boneyard")
                 c_player.display_boneyard()
                 print("Shuffling Boneyard...")
                 c_player.shuffle_boneyard()
                 print("Player " + c_player.get_player_id() + " shuffled boneyard")
                 c_player.display_boneyard()
+                #Move a tile from the boneyard to the player's hand
                 c_player.move_from_boneyard_to_hand_n(1)
             print("\nPlayers hands:")
             for c_player in self.players:
                 print("Player " + c_player.get_player_id() + " has tile ", end="")
                 c_player.display_hand()
+            #We sort the players by the value of the tile in their hand in descending order, that will be the order
+            #of the game
             print("\nComparing Tiles...")
+            # Sort the players by the value of the tile in their hand in descending order
             self.players.sort(key=lambda x: x.hand[0], reverse=True)
+            #Check if there are any ties by iterating through the players twice, and comparing the first tile in each
+            #player's hand against each other
+            #Iterate through each player once as the player we are comparing against
             for comp_player in self.players:
+                #Iterate through each player again to the comp_players hand against all the other players' hands
                 for c_player in self.players:
+                    #If the two players have the same tile, re-shuffle the boneyard and have them draw new tiles
+                    #Set equal to true so the loop runs again
                     if comp_player.get_hand()[0] == c_player.get_hand()[0] and comp_player != c_player:
                         print(
                             "\n\nPlayer " + comp_player.get_player_id() + " and Player " + c_player.get_player_id() + " have equal tiles re-shuffling")
                         equal = True
+                        #Move the tiles back to the boneyard
                         for c_player in self.players:
                             c_player.move_from_hand_to_boneyard_n(1)
+                        #Break out of the inner loop
                         break
+                #If equal is true, break out of the outer loop
                 if equal == True:
                     break
         print("\nOrder is:")
         for c_player in self.players:
             print("Player " + c_player.get_player_id() + " with tile ", end="")
             c_player.display_hand()
+        #The list of players will now be in the order they will play in, which we will be reflected within the the
+        #play_hand when we iterate through the list of players to play their turn
