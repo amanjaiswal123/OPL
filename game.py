@@ -182,19 +182,10 @@ class Player():
         #Print the hand tile, stack tile, and the stack
         print("\nHAND TILE:" + str(hand_tile))
         print("\nSTACK TILE"+ str(stack_tile))
-        print("\nSTACK:")
-        #Print the stack
-        for x in stack:
-            print(x)
         #Find the index of the hand tile in the hand
         tile_index = self.hand.index(hand_tile)
         #Replace the stack tile in the stack with the hand tile
         stack[stack.index(stack_tile)] = self.hand.pop(tile_index)
-        #Print the stack and hand after the move
-        print("\nMOD STACK:")
-        for x in stack:
-            print(x)
-        x = 1
 
     #*********************************************************************
     #Function Name: check_valid_move

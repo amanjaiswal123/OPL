@@ -276,52 +276,67 @@ class board_display():
                             self.event_queue.pop(self.event_queue.index(event))
                         return True
 
-    # *********************************************************************
-    # Function Name: draw_yes_no_prompt
-    # Purpose: To display a prompt with "yes" and "no" buttons to the user and return their response
-    # Parameters:
-    #            prompt, a string. It holds the text to be displayed in the prompt
-    # Return Value: A boolean indicating the user's response (True for "yes" and False for "no")
-    # Algorithm:
-    #            1) Create a surface for the prompt and fill it with a color
-    #            2) Render the prompt text and center it on the surface
-    #            3) Load and scale the "yes" and "no" button images
-    #            4) Place the button images on the surface
-    #            5) Update the display with the prompt surface
-    #            6) Continuously check for user input in the event queue
-    #               - If the user presses the "n" key, return False
-    #               - If the user presses the "y" key, return True
-    # Assistance Received: None
-    # *********************************************************************
-    def draw_prompt(self, prompt:str):
-        #Get the width and height of the screen
+    #*********************************************************************
+    #Function Name: draw_prompt
+    #Purpose: To display a prompt on the screen and wait for the user to press enter
+    #Parameters:
+    #            prompt, a string representing the prompt to be displayed
+    #            font_size, an optional integer representing the font size of the prompt text
+    #Return Value: None
+    #Algorithm:
+    #            1) Create a surface for the prompt
+    #            2) Fill the surface with a light grey color
+    #            3) Set the font for the prompt
+    #            4) Render the prompt text and center it on the surface
+    #            5) Display the prompt surface on the screen
+    #            6) Clear the event queue to prevent the user from pressing a key before the prompt is displayed
+    #            7) Listen for the user to press enter
+    #Assistance Received: None
+    #*********************************************************************
+    def draw_prompt(self, prompt: str, font_size=20):
+        # Get the width and height of the screen
         width = self.screen.get_width()
-        height = (self.screen.get_height()-10) / 5
-        #Create the surface
+        height = (self.screen.get_height() - 10) / 5
+        # Create the surface
         prompt_surface = pygame.Surface((width, height))
-        #Fill the surface with a light grey color
+        # Fill the surface with a light grey color
         prompt_surface.fill((200, 200, 200))
-        #Set the font for the prompt
-        prompt_font = pygame.font.SysFont(None, 12)
-        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
-        prompt_rect = prompt_text.get_rect(center=(width // 2, 40))
-        prompt_surface.blit(prompt_text, prompt_rect)
+        # Set the font for the prompt
+        prompt_font = pygame.font.SysFont(None, font_size)
 
-        #Display the prompt surface on the screen
-        self.screen.blit(prompt_surface, (0, int(self.screen.get_height()//5*3-5)))
+        lines = []
+        line = ""
+        words = prompt.split(" ")
+        for word in words:
+            if prompt_font.size(line + " " + word)[0] <= width:
+                line += " " + word
+            else:
+                lines.append(line)
+                line = word
+        lines.append(line)
+
+        y_offset = 0
+        for line in lines:
+            prompt_text = prompt_font.render(line, True, (0, 0, 0))
+            prompt_rect = prompt_text.get_rect(center=(width // 2, 40 + y_offset))
+            prompt_surface.blit(prompt_text, prompt_rect)
+            y_offset += 40
+
+        # Display the prompt surface on the screen
+        self.screen.blit(prompt_surface, (0, int(self.screen.get_height() // 5 * 3 - 5)))
         pygame.display.flip()
 
-        #Clear the event queue to prevent the user from pressing a key before the prompt is displayed
+        # Clear the event queue to prevent the user from pressing a key before the prompt is displayed
         self.event_queue.clear()
-        #Listen for the user to press enter before continuing
+        # Listen for the user to press enter before continuing
         while True:
-            #Iterate through the event queue
+            # Iterate through the event queue
             for event in self.event_queue.peek_events():
-                #If the user presses a key on the keyboard
+                # If the user presses a key on the keyboard
                 if event.type == pygame.KEYDOWN:
-                    #If the user presses "enter", return True
+                    # If the user presses "enter", return True
                     if event.key == pygame.K_RETURN:
-                        #We remove the event from the queue so that it is not processed again
+                        # We remove the event from the queue so that it is not processed again
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                         return
