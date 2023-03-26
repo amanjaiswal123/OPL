@@ -1,8 +1,7 @@
-import threading
+import os
 from time import sleep
 import pygame
 from threading import Thread
-from queue import Queue
 
 
 
@@ -52,6 +51,15 @@ class board_display():
         #The stack select is used to allow and disallow the player to select a tile from the stack. This is used so that
         #the player does not select two tiles from the stack
         self.stack_select = False
+        self.hand_scroll_b = False
+        self.stack_scroll_b = False
+
+
+    def set_stack_scroll(self, n):
+        self.stack_scroll_b = n
+
+    def set_hand_scroll(self, n):
+        self.hand_scroll_b = n
 
 
     def run(self):
@@ -70,6 +78,8 @@ class board_display():
         self.running = True
         self.clock = pygame.time.Clock()
 
+    def turn_off_display(self):
+        self.running = False
 
     def events(self):
         for event in pygame.event.get():
@@ -180,7 +190,7 @@ class board_display():
     def draw_winner(self, winner):
 
         # Load the background image
-        background = pygame.image.load("win.jpg")
+        background = pygame.image.load("assets/win.jpg")
         # Get the dimensions of the screen
         screen_width = self.screen.get_width()
         screen_height = self.screen.get_height()
@@ -191,7 +201,7 @@ class board_display():
         # Set the font for the winner text
         font = pygame.font.SysFont(None, 36)
         # Render the winner text with a black outline
-        winner_text = font.render(f"Winner: {winner}", True, (255, 255, 255), (0, 0, 0))
+        winner_text = font.render(f"Winner: Player {winner}", True, (255, 255, 255), (0, 0, 0))
         winner_text_outline = font.render(f"Winner: {winner}", True, (0, 0, 0), (255, 255, 255))
         # Get the rectangle for the winner text
         winner_rect = winner_text.get_rect(center=(screen_width // 2, screen_height // 2))
@@ -239,7 +249,7 @@ class board_display():
 
 
         #Load and scale the "yes" and "no" button images
-        yes_button_image = pygame.image.load("n.png").convert_alpha()
+        yes_button_image = pygame.image.load("assets/n.png").convert_alpha()
         #Scale the image
         scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
         #Get the rect for the image
@@ -249,7 +259,7 @@ class board_display():
 
 
         #Load and scale the "no" button image
-        no_button_image = pygame.image.load("y.png").convert_alpha()
+        no_button_image = pygame.image.load("assets/y.png").convert_alpha()
         #Scale the image
         scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
         #Get the rect for the image
@@ -378,12 +388,11 @@ class board_display():
     #7) If the user clicks on the "no" button, return False
     #Assistance Received: None
     #*********************************************************************
-    def draw_play_another_round(self):
+    def draw_yes_no_prompt_ws(self, prompt):
         #Set the button sizes
         button_width = 80
         button_height = 80
         #Set the prompt text
-        prompt = "Play another round?"
         #Get the width and height of the screen
         width = self.screen.get_width()
         height = self.screen.get_height()
@@ -399,7 +408,7 @@ class board_display():
         prompt_surface.blit(prompt_text, prompt_rect)
 
         #Load and scale the "yes" and "no" button images
-        yes_button_image = pygame.image.load("yes.png").convert_alpha()
+        yes_button_image = pygame.image.load("assets/yes.png").convert_alpha()
         #Scale the image to the specified button size
         scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
         yes_button_rect = scaled_yes_button_image.get_rect()
@@ -408,7 +417,7 @@ class board_display():
 
 
         #Load and scale the "no" button image
-        no_button_image = pygame.image.load("no.png").convert_alpha()
+        no_button_image = pygame.image.load("assets/no.png").convert_alpha()
         #Scale the image to the specified button size
         scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
         no_button_rect = scaled_no_button_image.get_rect()
@@ -445,7 +454,76 @@ class board_display():
                             self.event_queue.pop(self.event_queue.index(event))
                         return False
 
+    def ask_load_game(self):
+        #Set the button sizes
+        button_width = 80
+        button_height = 80
+        #Set the prompt text
+        prompt = "Load Game from file?"
+        #Get the width and height of the screen
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        #Create the surface
+        prompt_surface = pygame.Surface((width, height))
+        #Fill the surface with a light grey color
+        background_image = pygame.image.load("assets/background.jpg").convert()
+        # Scale the background image to fit the screen
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        # Display the background image
+        prompt_surface.blit(scaled_background_image, (0, 0))
+        #Set the font for the prompt
+        prompt_font = pygame.font.SysFont(None, 36)
+        prompt_text = prompt_font.render(prompt, True, (0, 0, 0))
+        prompt_rect = prompt_text.get_rect(center=(width // 2, height // 2 - 50))
+        #Render the prompt text on the surface
+        prompt_surface.blit(prompt_text, prompt_rect)
 
+        #Load and scale the "yes" and "no" button images
+        yes_button_image = pygame.image.load("assets/yes.png").convert_alpha()
+        #Scale the image to the specified button size
+        scaled_yes_button_image = pygame.transform.scale(yes_button_image, (button_width, button_height))
+        yes_button_rect = scaled_yes_button_image.get_rect()
+        #Set the top left corner for the hitbox
+        yes_button_rect.topleft = (width // 2 - button_width - 50, height // 2)
+
+
+        #Load and scale the "no" button image
+        no_button_image = pygame.image.load("assets/no.png").convert_alpha()
+        #Scale the image to the specified button size
+        scaled_no_button_image = pygame.transform.scale(no_button_image, (button_width, button_height))
+        no_button_rect = scaled_no_button_image.get_rect()
+        # Set the top left corner for the hitbox
+        no_button_rect.topleft = (width // 2 + 50, height // 2)
+
+        prompt_surface.blit(scaled_yes_button_image, yes_button_rect)
+        prompt_surface.blit(scaled_no_button_image, no_button_rect)
+
+        #Display the prompt surface on the screen
+        self.screen.blit(prompt_surface, (0, 0))
+
+        pygame.display.flip()
+
+        #Clear the event queue to prevent the user from pressing a key before the prompt is displayed
+        self.event_queue.clear()
+        while True:
+            #Iterate through the event queue
+            for event in self.event_queue.peek_events():
+                #If the user clicks on the screen
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    #If the user clicks on the "yes" button, return True
+                    if yes_button_rect.collidepoint(event.pos):
+                        print('N')
+                        #We remove the event from the queue so that it is not processed again
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return True
+                    #If the user clicks on the "no" button, return False
+                    elif no_button_rect.collidepoint(event.pos):
+                        print('Y')
+                        #We remove the event from the queue so that it is not processed again
+                        if event in self.event_queue:
+                            self.event_queue.pop(self.event_queue.index(event))
+                        return False
 
     #*********************************************************************
     #Function Name: draw_prompt_time_delay
@@ -571,7 +649,7 @@ class board_display():
         button_height = 45
 
         #Load the right arrow image
-        right_arrow = pygame.image.load("right-arrow.png").convert_alpha()
+        right_arrow = pygame.image.load("assets/right-arrow.png").convert_alpha()
         #Scale the image to the specified width and height
         right_arrow_button_image = pygame.transform.scale(right_arrow, (button_width, button_height))
         #Get the rectangle of the image
@@ -782,12 +860,12 @@ class board_display():
     #*********************************************************************
     def start_game_screen(self):
         #Load and display background image
-        background_image = pygame.image.load("background.jpg").convert()
+        background_image = pygame.image.load("assets/background.jpg").convert()
         #Scale the background image to fit the screen
         scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
 
         #Load and display start button image
-        start_button_image = pygame.image.load("start_button.png").convert_alpha()
+        start_button_image = pygame.image.load("assets/start_button.png").convert_alpha()
         #Scale the start button image to fit the screen
         button_width = round(self.screen.get_size()[0] * 0.3)
         button_height = round(self.screen.get_size()[1] * 0.2)
@@ -842,77 +920,66 @@ class board_display():
     #Assistance Received: None
     #*********************************************************************
     def game_config_screen_players(self):
-        #Set the button width and height
+        # Set the button width and height
         button_width = 70
         button_height = 70
 
-
-        #Load and display background image
+        # Load and display background image
         width = self.screen.get_width()
         height = self.screen.get_height()
-        #Load and display background image
-        background_image = pygame.image.load("background.jpg").convert()
-        #Scale the background image to fit the screen
+        background_image = pygame.image.load("assets/background.jpg").convert()
         scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
-        #Display the background image
         self.screen.blit(scaled_background_image, (0, 0))
 
-        #Load and display start button image
-        prompt_surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+        # Create the prompt text surface
+        prompt_text = "How many players would you like?"
+        font = pygame.font.Font(None, 24)
+        prompt_surface = font.render(prompt_text, True, pygame.Color('black'))
+        prompt_rect = prompt_surface.get_rect(center=(width // 2, height // 2 - 60))
 
-        #Load and display four player button image
-        four_player = pygame.image.load("4.png").convert_alpha()
-        #Scale the four player image to fit the screen
+
+        # Load and display four player button image
+        four_player = pygame.image.load("assets/4.png").convert_alpha()
         scaled_four_player_button_image = pygame.transform.scale(four_player, (button_width, button_height))
-        #Get the rectangle for the four player button
         four_player_button_rect = scaled_four_player_button_image.get_rect()
-        #Set the center of the four player button
         four_player_button_rect.center = (width // 2 - button_width // 2 - button_width, height // 2)
 
-        #Load and display two player button image
-        two_player_button_image = pygame.image.load("2.png").convert_alpha()
-        #Scale the two player image to fit the screen
+        # Load and display two player button image
+        two_player_button_image = pygame.image.load("assets/2.png").convert_alpha()
         scaled_two_player_button_image = pygame.transform.scale(two_player_button_image, (button_width, button_height))
-        #Get the rectangle for the two player button
         two_player_button_rect = scaled_two_player_button_image.get_rect()
-        #Set the center of the two player button for the hitbox
         two_player_button_rect.center = (width // 2 + button_width // 2 + button_width, height // 2)
 
-        #Display the four player button image
-        prompt_surface.blit(scaled_four_player_button_image, four_player_button_rect)
-        prompt_surface.blit(scaled_two_player_button_image, two_player_button_rect)
+        # Display the prompt text and buttons
+        self.screen.blit(prompt_surface, prompt_rect)
+        self.screen.blit(scaled_four_player_button_image, four_player_button_rect)
+        self.screen.blit(scaled_two_player_button_image, two_player_button_rect)
 
-
-        #Display the background image and start button image
-        self.screen.blit(prompt_surface, (0, 0))
-
-        #Update the display
+        # Update the display
         pygame.display.flip()
 
-
-        #Clear the event queue so we don't get any events from before the prompt is displayed
+        # Clear the event queue so we don't get any events from before the prompt is displayed
         self.event_queue.clear()
-        #Wait for the user to press click one of the buttons
+
+        # Wait for the user to click one of the buttons
         while True:
-            #Iterate through the events in the event queue
             for event in self.event_queue.peek_events():
-                #If the event is a keydown event
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    #If the key is the enter key
                     if four_player_button_rect.collidepoint(event.pos):
                         print('Two players selected')
-                        # Remove the event from the event queue so it doesn't get processed again
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                         return 2
-
-                    #If the key is the enter key
                     elif two_player_button_rect.collidepoint(event.pos):
                         print('Four players selected')
-                        # Remove the event from the event queue so it doesn't get processed again
                         if event in self.event_queue:
                             self.event_queue.pop(self.event_queue.index(event))
                         return 4
+
+            pygame.display.flip()
+
+
+
 
     #*********************************************************************
     #Function Name: ask_player_type
@@ -943,7 +1010,7 @@ class board_display():
         width = self.screen.get_width()
         height = self.screen.get_height()
         # Load and display background image
-        background_image = pygame.image.load("background.jpg").convert()
+        background_image = pygame.image.load("assets/background.jpg").convert()
         # Scale the background image to fit the screen
         scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
         # Display the background image
@@ -965,7 +1032,7 @@ class board_display():
         computer_text_rect.center = (width // 2 + button_width // 2 + button_width, height // 2 + button_height + 20)
 
         # Load and display human.png image
-        human_image = pygame.image.load("human.png").convert_alpha()
+        human_image = pygame.image.load("assets/human.png").convert_alpha()
         # Scale the human image to fit the screen
         scaled_human_image = pygame.transform.scale(human_image, (button_width, button_height))
         # Get the rectangle for the human image
@@ -974,7 +1041,7 @@ class board_display():
         human_image_rect.center = (width // 2 - button_width // 2 - button_width, height // 2)
 
         # Load and display computer.png image
-        computer_image = pygame.image.load("robot.png").convert_alpha()
+        computer_image = pygame.image.load("assets/robot.png").convert_alpha()
         # Scale the computer image to fit the screen
         scaled_computer_image = pygame.transform.scale(computer_image, (button_width, button_height))
         # Get the rectangle for the computer image
@@ -1058,12 +1125,12 @@ class board_display():
     #6) Return the number of sets
     #Assistance Received: None
     #*********************************************************************
-    def input_number_screen(self):
+    def input_number_screen(self, prompt, min_=None, max_=None):
         #Set the button width and height
         width = self.screen.get_width()
         height = self.screen.get_height()
         #Load and display background image
-        background_image = pygame.image.load("background.jpg").convert()
+        background_image = pygame.image.load("assets/background.jpg").convert()
         #Scale the background image to fit the screen
         scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
         #Display the background image
@@ -1088,7 +1155,7 @@ class board_display():
 
 
         #Display the text prompt
-        prompt_text = "What length would you like the double sets?"
+        prompt_text = prompt
         prompt_surface = font.render(prompt_text, True, pygame.Color('black'))
         prompt_rect = prompt_surface.get_rect(center=(width // 2, height // 2 - 60))
 
@@ -1118,12 +1185,20 @@ class board_display():
                                 #Try to convert the text to an integer
                                 number = int(text)
                                 #If the number is less than 5, display an error message
-                                if number < 5:
-                                    error_surface = font.render("Please enter only numbers greater than 5", True, pygame.Color('red'))
-                                    error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
-                                    error_message = True
-                                else:
-                                    done = True
+                                if min_ != None:
+                                    if number < min_:
+                                        error_surface = font.render("Please enter only numbers greater than "+str(min_), True, pygame.Color('red'))
+                                        error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                        error_message = True
+                                    else:
+                                        done = True
+                                if max_ != None:
+                                    if number > max_:
+                                        error_surface = font.render("Please enter only numbers less than "+str(max_), True, pygame.Color('red'))
+                                        error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                        error_message = True
+                                    else:
+                                        done = True
                             #If the text cannot be converted to an integer, display an error message
                             except ValueError:
                                 text = ''
@@ -1156,8 +1231,233 @@ class board_display():
                 self.screen.blit(error_surface, error_rect)
             #Update the display
             pygame.display.flip()
-
+        print('Number entered: ' + str(number))
         return number
+
+    def get_filename_load(self):
+        # Set the button width and height
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        # Load and display background image
+        background_image = pygame.image.load("assets/background.jpg").convert()
+        # Scale the background image to fit the screen
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        # Display the background image
+        self.screen.blit(scaled_background_image, (0, 0))
+
+        # Load and Display the font
+        font = pygame.font.Font(None, 24)
+        # Create the input box
+        input_box = pygame.Rect(width // 2 - 100, height // 2 - 20, 200, 40)
+        # Set the color of the input box
+        color_inactive = pygame.Color('gray')
+        color_active = pygame.Color('black')
+        color = color_inactive
+        # Set the active state of the input box, meaning whether it is clicked or not
+        active = False
+        # Set the text in the input box
+        text = ''
+        # Set done to false
+        done = False
+        # Set the error message to false
+        error_message = False
+
+        # Display the text prompt
+        prompt_text = "Enter a File Name: "
+        prompt_surface = font.render(prompt_text, True, pygame.Color('black'))
+        prompt_rect = prompt_surface.get_rect(center=(width // 2, height // 2 - 60))
+
+        # Clear the event queue so we don't get any events from before the prompt is displayed
+        self.event_queue.clear()
+        while not done:
+            # Iterate through the events in the event queue
+            for event in self.event_queue.peek_events():
+                # If the event is a keydown event
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # If the mouse is clicked on the input box set active to true
+                    if input_box.collidepoint(event.pos):
+                        active = not active
+                    else:
+                        active = False
+                    color = color_active if active else color_inactive
+                    # Remove the event from the event queue so it doesn't get processed again
+                    if event in self.event_queue:
+                        self.event_queue.pop(self.event_queue.index(event))
+                # If the event is a keydown event and active is true
+                if event.type == pygame.KEYDOWN and active:
+                    # If active
+                    if active:
+                        # If the key is the enter ke
+                        if event.key == pygame.K_RETURN:
+                            try:
+                                # Try to convert the text to an integer
+                                user_input = str(text)
+                                root = os.path.dirname(os.path.abspath(__file__))
+                                user_input = root+"/Seralize/"+user_input
+                                if not os.path.exists(user_input) or not os.path.isfile(user_input):
+                                    error_surface = font.render("Invalid Path. Check Seralize Directory", True, pygame.Color('red'))
+                                    error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                    error_message = True
+                                elif os.path.exists(user_input) and os.path.isfile(user_input):
+                                    done = True
+                            # If the text cannot be converted to an integer, display an error message
+                            except ValueError:
+                                text = ''
+                                error_surface = font.render("Please enter only letters", True, pygame.Color('red'))
+                                error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                error_message = True
+                                done = False
+                        # If the key is the backspace key, remove the last character from the text
+                        elif event.key == pygame.K_BACKSPACE:
+                            text = text[:-1]
+                            error_message = False
+                        # If the key is any other key, add the character to the text
+                        else:
+                            text += event.unicode
+                # Remove the event from the event queue so it doesn't get processed again
+                if event in self.event_queue:
+                    self.event_queue.pop(self.event_queue.index(event))
+
+            # Update the display with the new text continuously
+            self.screen.blit(scaled_background_image, (0, 0))
+            self.screen.blit(prompt_surface, prompt_rect)
+            txt_surface = font.render(text, True, pygame.Color('white'))
+            width_box = max(200, txt_surface.get_width() + 10)
+            input_box.w = width_box
+            pygame.draw.rect(self.screen, color, input_box, 2)
+            pygame.draw.rect(self.screen, pygame.Color('black'), input_box)
+            self.screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+            # Display the error message if there is one
+            if error_message:
+                self.screen.blit(error_surface, error_rect)
+            # Update the display
+            pygame.display.flip()
+        print('Entered: ' + str(user_input))
+        return user_input
+
+    def handle_menu_selection(self, selection, save):
+        # Get the selected option
+        selected_option = selection[0]
+
+        # Get the file path for the selected option
+        root = os.path.dirname(os.path.abspath(__file__))
+        file_path = root + "/Seralize/" + selected_option + ".txt"
+
+        # If save is True, check if the file already exists
+        if save:
+            if os.path.exists(file_path) or os.path.isfile(file_path):
+                print("Filename Taken. Check Seralize Directory")
+            else:
+                print("Selected: " + selected_option)
+                return file_path
+        else:
+            if not os.path.exists(file_path) or not os.path.isfile(file_path):
+                print("Invalid Path. Check Seralize Directory")
+            else:
+                print("Selected: " + selected_option)
+                return file_path
+
+    def get_filename_save(self):
+        # Set the button width and height
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        # Load and display background image
+        background_image = pygame.image.load("assets/background.jpg").convert()
+        # Scale the background image to fit the screen
+        scaled_background_image = pygame.transform.scale(background_image, self.screen.get_size())
+        # Display the background image
+        self.screen.blit(scaled_background_image, (0, 0))
+
+        # Load and Display the font
+        font = pygame.font.Font(None, 24)
+        # Create the input box
+        input_box = pygame.Rect(width // 2 - 100, height // 2 - 20, 200, 40)
+        # Set the color of the input box
+        color_inactive = pygame.Color('gray')
+        color_active = pygame.Color('black')
+        color = color_inactive
+        # Set the active state of the input box, meaning whether it is clicked or not
+        active = False
+        # Set the text in the input box
+        text = ''
+        # Set done to false
+        done = False
+        # Set the error message to false
+        error_message = False
+
+        # Display the text prompt
+        prompt_text = "Enter a File Name: "
+        prompt_surface = font.render(prompt_text, True, pygame.Color('black'))
+        prompt_rect = prompt_surface.get_rect(center=(width // 2, height // 2 - 60))
+
+        # Clear the event queue so we don't get any events from before the prompt is displayed
+        self.event_queue.clear()
+        while not done:
+            # Iterate through the events in the event queue
+            for event in self.event_queue.peek_events():
+                # If the event is a keydown event
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # If the mouse is clicked on the input box set active to true
+                    if input_box.collidepoint(event.pos):
+                        active = not active
+                    else:
+                        active = False
+                    color = color_active if active else color_inactive
+                    # Remove the event from the event queue so it doesn't get processed again
+                    if event in self.event_queue:
+                        self.event_queue.pop(self.event_queue.index(event))
+                # If the event is a keydown event and active is true
+                if event.type == pygame.KEYDOWN and active:
+                    # If active
+                    if active:
+                        # If the key is the enter ke
+                        if event.key == pygame.K_RETURN:
+                            try:
+                                # Try to convert the text to an integer
+                                user_input = str(text)
+                                root = os.path.dirname(os.path.abspath(__file__))
+                                user_input = root+"/Seralize/"+user_input
+                                if os.path.exists(user_input) or os.path.isfile(user_input):
+                                    error_surface = font.render("Filename Taken. Check Seralize Directory", True, pygame.Color('red'))
+                                    error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                    error_message = True
+                                elif not os.path.exists(user_input) and not os.path.isfile(user_input):
+                                    done = True
+                            # If the text cannot be converted to an integer, display an error message
+                            except ValueError:
+                                text = ''
+                                error_surface = font.render("Please enter only letters", True, pygame.Color('red'))
+                                error_rect = error_surface.get_rect(center=(width // 2, height // 2 + 40))
+                                error_message = True
+                                done = False
+                        # If the key is the backspace key, remove the last character from the text
+                        elif event.key == pygame.K_BACKSPACE:
+                            text = text[:-1]
+                            error_message = False
+                        # If the key is any other key, add the character to the text
+                        else:
+                            text += event.unicode
+                # Remove the event from the event queue so it doesn't get processed again
+                if event in self.event_queue:
+                    self.event_queue.pop(self.event_queue.index(event))
+
+            # Update the display with the new text continuously
+            self.screen.blit(scaled_background_image, (0, 0))
+            self.screen.blit(prompt_surface, prompt_rect)
+            txt_surface = font.render(text, True, pygame.Color('white'))
+            width_box = max(200, txt_surface.get_width() + 10)
+            input_box.w = width_box
+            pygame.draw.rect(self.screen, color, input_box, 2)
+            pygame.draw.rect(self.screen, pygame.Color('black'), input_box)
+            self.screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+            # Display the error message if there is one
+            if error_message:
+                self.screen.blit(error_surface, error_rect)
+            # Update the display
+            pygame.display.flip()
+        print('Entered: ' + str(user_input))
+        return user_input
+
 
     #*********************************************************************
     #Function Name: stack_scroll
@@ -1179,7 +1479,7 @@ class board_display():
         #Clear the event queue so we don't get any events from before the prompt is displayed
         self.event_queue.clear()
         #Listen for inputs on the stack
-        while True:
+        while self.stack_scroll_b:
             #ITerate through the events in the event queue
             for event in self.event_queue.peek_events():
                 #If the event is a keydown event
@@ -1230,6 +1530,7 @@ class board_display():
                                         #Remove the event from the event queue so it doesn't get processed again
                                     if event in self.event_queue:
                                         self.event_queue.pop(self.event_queue.index(event))
+        return
     #*********************************************************************
     #Function Name: draw_hand
     #Purpose: To draw the hand of tiles in a given screen
@@ -1324,7 +1625,7 @@ class board_display():
         #Clear the event queue so that we don't process events that have already been processed
         self.event_queue.clear()
         #Listen for events related to the hand
-        while True:
+        while self.hand_scroll_b:
             #Iterate through the events in the event queue
             for event in self.event_queue.peek_events():
                 #If the event is a KEYDOWN event
@@ -1372,6 +1673,7 @@ class board_display():
                                 if event in self.event_queue:
                                     self.event_queue.pop(self.event_queue.index(event))
                                 return
+        return
 class DisplayTile:
 
     def __init__(self):

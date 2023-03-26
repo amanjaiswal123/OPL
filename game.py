@@ -1,9 +1,13 @@
 import os
-from random import randint, shuffle
+from random import shuffle
+import pygame.display
 from gui import DisplayTile, board_display
 from time import sleep
 from threading import Thread
-import copy
+
+
+
+
 class Player():
     # The player class is used to create a player object. The player object is used to store the player's data including
     #  their player id, color, boneyard, hand, stacks, score, and rounds won.
@@ -29,6 +33,37 @@ class Player():
         self.rounds_won = 0
         #Used to scroll through the player's hand in gui.hand_listener
         self.hand_offset = 0
+
+
+    def load_player(self, player_id, color, boneyard, hand, stack, score, rounds_won):
+        self.playerID = player_id
+        self.color = color
+        self.boneyard = boneyard
+        self.hand = hand
+        self.stack = stack
+        self.score = score
+        self.rounds_won = rounds_won
+
+    def save_player(self):
+        string = ""
+        string += "Human:\n"
+        string += "   Stacks: "
+        for tile_ in self.stack:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Boneyard: "
+        for tile_ in self.boneyard:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Hand: "
+        for tile_ in self.hand:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Score: " + str(self.score) + "\n"
+        string += "   Rounds Won: " + str(self.rounds_won) + "\n"
+
+        return string
+
 
     def set_stack(self, stack):
         self.stack = stack
@@ -378,9 +413,11 @@ class Player():
     #*********************************************************************
     def get_move(self, players, game_display):
         #Start threads to listen for scrolling on the stacks
+        game_display.set_stack_scroll(True)
         stack_scroll_thread = Thread(target=game_display.stack_scroll, args=[players])
         stack_scroll_thread.start()
         #Start a thread to listen for scrolling on the player's hand
+        game_display.set_hand_scroll(True)
         hand_scroll_thread = Thread(target=game_display.hand_listener, args=[self.hand])
         hand_scroll_thread.start()
         #Get the recommended move
@@ -434,6 +471,7 @@ class Player():
                             break
                 #Set the hand_select attribute to false you cannot select a tile from the hand.
                 game_display.hand_select = False
+                game_display.set_hand_scroll(False)
                 #Draw the first selected tile
                 game_display.draw_move(left_tile=hand_tile)
                 # Set the stack_select attribute to true so the player can select a tile from a stack
@@ -460,6 +498,7 @@ class Player():
                                 break
                 #Set the stack_select attribute to false you cannot select a tile from the stack.
                 game_display.set_stack_select(False)
+                game_display.set_stack_scroll(False)
                 #Set the player_move attribute to true so the player can confirm or cancel their move
                 game_display.set_player_move(True)
                 confirm_move = game_display.draw_move(players, hand_tile, stack_tile)
@@ -482,6 +521,8 @@ class Player():
                 return [hand_tile, stack, stack_tile]
             #If the player wants to pass, return pass
             elif pass_ and reccommened_move == "pass":
+                game_display.set_stack_scroll(False)
+                game_display.set_hand_scroll(False)
                 return "pass"
             #If the player wants to pass but there is a possible move, display an error message and
             #recursively call the function until a valid move is given from the player
@@ -560,7 +601,7 @@ class Player():
         return score
 
     def clear_hand(self):
-        self.hand = []
+        self.hand.clear()
 
     #*********************************************************************
     #Function Name: reset_player
@@ -590,43 +631,6 @@ class Player():
         self.stack = []
         self.move_from_hand_to_stack_n(6)
         self.score = 0
-
-class Computer_Player(Player):
-    #*********************************************************************
-    #Function Name: get_move
-    #Purpose: To get a move recommendation from the computer player and display it on the game board.
-    #Parameters:
-
-    #players, an array passed by value. It holds all the player objects in the game.
-    #game_display, an object passed by reference. It represents the display for the current game.
-    #Return Value: The move recommendation from the computer player.
-    #Algorithm:
-
-    #1) Get a move from the recommend move function
-    #2) If the move is not "pass", get the hand tile and stack tile from the move.
-    #3) Draw the move on the game board using the game_display object.
-    #4) Otherwise, display "PASS" on the game board.
-    #5) Return the move recommendation.
-    #Assistance Received: none
-    #*********************************************************************
-
-    #Overriding the get_move function from the Player class to simply use the rec-move to get a move
-    def get_move(self, players, game_display):
-        #Get a move from the recommend move function
-        move = self.reccomend_move(players)
-        #If the move is not "pass", get the hand tile and stack tile from the move.
-        if move != "pass":
-            hand_tile = move[0]
-            stack_tile = move[2]
-            #Draw the move on the game board using the game_display object.
-            game_display.draw_move(players, hand_tile, stack_tile)
-            #Display the move reasoning on the game board
-            prompt = "The computer picked this move because it has a difference of " + str(hand_tile-stack_tile)\
-                     + " Which is the lowest difference after prioritizing opponent tiles"
-            game_display.draw_prompt(prompt)
-        #If the move is pass, display "PASS" on the game board.
-        #Return the move recommendation.
-        return move
 
 class tile(DisplayTile):
     #The tile class stores the value of the left and right side of a tile aswell as overriding some basic operators
@@ -678,6 +682,63 @@ class tile(DisplayTile):
 
     def display_tile(self):
         print("|" + self.player.get_color() + str(self.left) + str(self.right) + "|", end=" ")
+
+class Computer_Player(Player):
+    #*********************************************************************
+    #Function Name: get_move
+    #Purpose: To get a move recommendation from the computer player and display it on the game board.
+    #Parameters:
+
+    #players, an array passed by value. It holds all the player objects in the game.
+    #game_display, an object passed by reference. It represents the display for the current game.
+    #Return Value: The move recommendation from the computer player.
+    #Algorithm:
+
+    #1) Get a move from the recommend move function
+    #2) If the move is not "pass", get the hand tile and stack tile from the move.
+    #3) Draw the move on the game board using the game_display object.
+    #4) Otherwise, display "PASS" on the game board.
+    #5) Return the move recommendation.
+    #Assistance Received: none
+    #*********************************************************************
+
+    #Overriding the get_move function from the Player class to simply use the rec-move to get a move
+    def get_move(self, players, game_display):
+        #Get a move from the recommend move function
+        move = self.reccomend_move(players)
+        #If the move is not "pass", get the hand tile and stack tile from the move.
+        if move != "pass":
+            hand_tile = move[0]
+            stack_tile = move[2]
+            #Draw the move on the game board using the game_display object.
+            game_display.draw_move(players, hand_tile, stack_tile)
+            #Display the move reasoning on the game board
+            prompt = "The computer picked this move because it has a difference of " + str(hand_tile-stack_tile)\
+                     + " Which is the lowest difference after prioritizing opponent tiles"
+            game_display.draw_prompt(prompt)
+        #If the move is pass, display "PASS" on the game board.
+        #Return the move recommendation.
+        return move
+
+    def save_player(self):
+        string = ""
+        string += "Computer:\n"
+        string += "   Stacks: "
+        for tile_ in self.stack:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Boneyard: "
+        for tile_ in self.boneyard:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Hand: "
+        for tile_ in self.hand:
+            string += str(tile_)[1:4]+" "
+        string += "\n"
+        string += "   Score: " + str(self.score) + "\n"
+        string += "   Rounds Won: " + str(self.rounds_won) + "\n"
+
+        return string
 
 
 class hand():
@@ -770,6 +831,29 @@ class hand():
                     # while loop since all the players have passed
                     if consecutive_passes >= len(players):
                         break
+                if len(players) == 2:
+                    player1 = type(players[0])
+                    player2 =  type(players[1])
+                    if (player1 == Player and player2 == Computer_Player) or (player1 == Computer_Player and player2 == Player):
+                        if game_display.draw_yes_no_prompt_ws("Save Game to File?"):
+                            string = ""
+                            for c_player_ in players:
+                                string += c_player_.save_player()
+                                string += "\n"
+                            if players.index(c_player) == len(players)-1:
+                                string += "Turn: "+str(players[0])
+                            else:
+                                string += "Turn: "+str(players[players.index(c_player)+1].get_player_id())
+                            filename = game_display.get_filename_save()
+                            text_file = open(filename, "w")
+                            # write string to file
+                            text_file.write(string)
+                            # close file
+                            text_file.close()
+                            game_display.turn_off_display()
+                            exit(0)
+                if consecutive_passes >= len(players):
+                    break
             #Check if all hands are empty
             all_empty_hands = all([len(x.hand) == 0 for x in players])
 
@@ -860,26 +944,30 @@ class Round():
         #Then increment hand_num so that the next if statement is hit and the next hand is played
         if hand_num == 1:
             print("\nHand: 1")
-            for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(double_set_length-1)
+            if len(players[0].get_hand()) == 1:
+                for c_player in players:
+                    c_player.move_from_boneyard_to_hand_n(double_set_length-1)
             c_hand.play_hand(players, game_display)
             hand_num += 1
-        elif hand_num == 2:
+        if hand_num == 2:
             print("\nHand: 2")
-            for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(double_set_length)
+            if len(players[0].get_hand()) == 0:
+                for c_player in players:
+                    c_player.move_from_boneyard_to_hand_n(double_set_length)
             c_hand.play_hand(players, game_display)
             hand_num += 1
-        elif hand_num == 3:
+        if hand_num == 3:
             print("\nHand: 3")
-            for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(double_set_length)
+            if len(players[0].get_hand()) == 0:
+                for c_player in players:
+                    c_player.move_from_boneyard_to_hand_n(double_set_length)
             c_hand.play_hand(players, game_display)
             hand_num += 1
-        elif hand_num == 4:
+        if hand_num == 4:
             print("\nHand: 4")
-            for c_player in players:
-                c_player.move_from_boneyard_to_hand_n(len(c_player.get_hand()))
+            if len(players[0].get_hand()) == 0:
+                for c_player in players:
+                    c_player.move_from_boneyard_to_hand_n(len(c_player.get_hand()))
             c_hand.play_hand(players, game_display)
             hand_num += 1
         #Score the round
@@ -961,12 +1049,30 @@ class tournament():
         sleep(1)
         #Show the start game_screen
         self.game_display.start_game_screen()
+        if self.game_display.ask_load_game():
+            root = os.path.join(os.path.dirname(__file__))
+            options = self.list_files_with_extension(root+"/Seralize", ".txt")
+            filepath = self.game_display.get_filename_load()
+            self.player_num = 2
+            self.double_set_length = 6
+            self.load_seralized_tournament(filepath)
+        else:
         #Get the amount of players
-        self.player_num = self.game_display.game_config_screen_players()
+            self.player_num = self.game_display.game_config_screen_players()
+
         #Get the double set length
-        self.double_set_length = self.game_display.input_number_screen()
+            self.double_set_length = self.game_display.input_number_screen("What length would you like the double sets?", min_=5)
+
+
         #Start the tournament
-        self.start_new_tournament(self.player_num, self.double_set_length)
+            self.start_new_tournament(self.player_num, self.double_set_length)
+
+    def list_files_with_extension(self, directory_path, file_extension):
+        file_names = []
+        for file in os.listdir(directory_path):
+            if file.endswith(file_extension):
+                file_names.append(file)
+        return file_names
 
     #*********************************************************************
     #Function Name: start_new_tournament
@@ -987,11 +1093,147 @@ class tournament():
     #7) If not, end the game and declare the winner.
     #Assistance Received: none
     #*********************************************************************
+
+    def extract_player_data(self, file_path):
+        players = []
+        with open(file_path) as f:
+            current_player = None
+            for line in f:
+                if line.startswith("Computer:"):
+                    current_player = "Computer"
+                    players.append(
+                        {"name": current_player, "stacks": [], "boneyard": [], "hand": [], "score": 0, "rounds_won": 0})
+                elif line.startswith("Human:"):
+                    current_player = "Human"
+                    players.append(
+                        {"name": current_player, "stacks": [], "boneyard": [], "hand": [], "score": 0, "rounds_won": 1})
+                elif line.startswith("   Stacks:"):
+                    stacks = line.split(":")[1].strip().split()
+                    players[-1]["stacks"] = stacks
+                elif line.startswith("   Boneyard:"):
+                    boneyard = line.split(":")[1].strip().split()
+                    players[-1]["boneyard"] = boneyard
+                elif line.startswith("   Hand:"):
+                    hand = line.split(":")[1].strip().split()
+                    players[-1]["hand"] = hand
+                elif line.startswith("   Score:"):
+                    score = int(line.split(":")[1].strip())
+                    players[-1]["score"] = score
+                elif line.startswith("   Rounds Won:"):
+                    rounds_won = int(line.split(":")[1].strip())
+                    players[-1]["rounds_won"] = rounds_won
+                elif line.startswith("Turn:"):
+                    turn = line.split(":")[1].strip()
+        return [players, turn]
+
+    def load_seralized_tournament(self, filepath):
+        data = self.extract_player_data(filepath)
+        human_player = Player()
+        computer_player = Computer_Player()
+        for player in data[0]:
+            if player["name"] == "Computer":
+                computer_player_boneyard = []
+                for x in player["boneyard"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    computer_player_boneyard.append(tile_)
+
+
+                computer_player_hand = []
+                for x in player["hand"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    computer_player_hand.append(tile_)
+
+                computer_player_stack = []
+                for x in player["stacks"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    computer_player_stack.append(tile_)
+
+                computer_player.playerID = 'Computer'
+                computer_player.color = 'W'
+                computer_player.boneyard = computer_player_boneyard
+                computer_player.hand = computer_player_hand
+                computer_player.stack = computer_player_stack
+                computer_player.score = player["score"]
+                computer_player.rounds_won = player["rounds_won"]
+            else:
+                human_player_boneyard = []
+                for x in player["boneyard"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    human_player_boneyard.append(tile_)
+
+                human_player_hand = []
+                for x in player["hand"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    human_player_hand.append(tile_)
+
+                human_player_stack = []
+                for x in player["stacks"]:
+                    if x[0] == 'B':
+                        tile_ = tile(int(x[1]), int(x[2]), human_player)
+                    else:
+                        tile_ = tile(int(x[1]), int(x[2]), computer_player)
+                    human_player_stack.append(tile_)
+
+                human_player.playerID = "Human"
+                human_player.color = 'B'
+                human_player.boneyard = human_player_boneyard
+                human_player.hand = human_player_hand
+                human_player.stack = human_player_stack
+                human_player.score = player["score"]
+                human_player.rounds_won = player["rounds_won"]
+
+        c_hand = 4 - (len(human_player_boneyard) // 6 )
+        round = Round()
+        # Loop until the player does not want to play any more rounds
+        if data[1] == "Computer":
+            self.players = [computer_player, human_player]
+        else:
+            self.players = [human_player, computer_player]
+            # Determine the order of the players
+            if data[1] == "":
+                self.determine_order()
+        while True:
+            # Play the round
+            round.play_round(self.players, hand_num=c_hand, game_display=self.game_display,
+                             double_set_length=6)
+            # Check if the players want to play another round
+            # If not, end the game by breaking the loop
+            if not self.game_display.draw_yes_no_prompt_ws("Do you want to play another round?"):
+                # If not, end the game by breaking the loop
+                break
+            # If the players want to play another round, reset the game and start a new round
+            else:
+                for c_player in self.players:
+                    c_player.reset_player(6)
+                c_hand = 1
+                self.determine_order()
+        # End the game and declare the winner
+        self.get_winner()
+        self.game_display.wait_for_enter()
+        self.game_display.turn_off_display()
+        exit()
+        print("\nGoodbye! Thanks for playing!")
+
+
     def start_new_tournament(self, player_num, double_set_length):
         #Create the correct amount of computer and human players
         #The loop alternates between creating a computer player and a human player so an even number of
         # human and computer players are always created. The first player is always a human player.
-        last = Player()
         #Loop for the specified number of players
         for x in range(0, player_num):
             #Create a list of existing player colors
@@ -1014,8 +1256,10 @@ class tournament():
                 print("Human Player " + temp_player.get_player_id() + " has been created with color " + temp_player.get_color())
             #Add the player to the list of players
             self.players.append(temp_player)
+            self.game_display.screen.fill((0,0,0))
+            pygame.display.flip()
+            sleep(.5)
             #Set the last player created to the current player so it alternates next iteration
-            last = temp_player
         #Create a new round object
         round = Round()
         #Loop until the player does not want to play any more rounds
@@ -1026,7 +1270,7 @@ class tournament():
             round.play_round(self.players, hand_num=1, game_display=self.game_display, double_set_length=double_set_length)
             #Check if the players want to play another round
             #If not, end the game by breaking the loop
-            if not self.game_display.draw_play_another_round():
+            if not self.game_display.draw_yes_no_prompt_ws("Do you want to play another round?"):
                 #If not, end the game by breaking the loop
                 break
             #If the players want to play another round, reset the game and start a new round
@@ -1035,6 +1279,9 @@ class tournament():
                     c_player.reset_player(double_set_length)
         #End the game and declare the winner
         self.get_winner()
+        self.game_display.wait_for_enter()
+        self.game_display.turn_off_display()
+        exit()
         print("\nGoodbye! Thanks for playing!")
 
     #*********************************************************************
@@ -1062,6 +1309,7 @@ class tournament():
             print("Player " + c_player.get_player_id() + " has " + str(c_player.get_rounds_won()) + " rounds won")
         print()
         if players[0].get_rounds_won() == players[1].get_rounds_won():
+            self.game_display.draw_winner("Draw!")
             print("\nIts a Draw!")
         else:
             self.game_display.draw_winner(players[0].get_player_id())
